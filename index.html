@@ -317,14 +317,14 @@ function getGrade(maxSingle, amt) {
   if (maxSingle >= amt * 0.4) return 1;
   if (maxSingle >= amt * 0.2) return 2;
   if (maxSingle >= amt * 0.1) return 3;
-  return 0;
+  return 4;
 }
 
 const GRADE_INFO = {
   1: { cls: 'g1', label: '🟢 1순위 (40%+)' },
   2: { cls: 'g2', label: '🟡 2순위 (20%+)' },
   3: { cls: 'g3', label: '🟠 3순위 (10%+)' },
-  0: { cls: 'g0', label: '⚪ 참고' },
+  4: { cls: 'g0', label: '⚪ 참고' },
 };
 
 let lastResults = [];
@@ -380,8 +380,8 @@ function runSearch() {
 function sortResults(arr, key, amt) {
   return [...arr].sort((a, b) => {
     if (key === 'grade') {
-      const ga = getGrade(a.max_single, amt) ?? 99;
-      const gb = getGrade(b.max_single, amt) ?? 99;
+      const ga = getGrade(a.max_single, amt) ?? 5;
+      const gb = getGrade(b.max_single, amt) ?? 5;
       if (ga !== gb) return ga - gb;
       return b.total_amt - a.total_amt;
     }
@@ -394,7 +394,9 @@ function sortResults(arr, key, amt) {
 
 function renderResults() {
   const sortKey = document.getElementById('sort-sel') ? document.getElementById('sort-sel').value : 'amount';
-  const { type, large, detail, amt } = lastInput;
+  const { type, large, detail } = lastInput;
+  const amtMilNow = parseFloat(document.getElementById('inp-amt').value);
+  const amt = isNaN(amtMilNow) ? NaN : amtMilNow * 1e6;
   const hasAmt = !isNaN(amt) && amt > 0;
   const sorted = sortResults(lastResults, sortKey, amt);
   const isReg = type === '신규' || type === '지분';
@@ -452,7 +454,7 @@ function renderResults() {
     else if (grade === 3) singleValClass = 'orange';
     else if (grade === 0) singleValClass = 'gray';
 
-    const dimCard = grade === 0;
+    const dimCard = grade === 4;
 
     html += `<div class="card ${isTop&&!dimCard?'top':''} ${dimCard?'grade-dim':''}">
       ${i<3 ? `<div class="rank-badge ${i===1?'silver':i===2?'bronze':''}">${rankLabel}${i===0&&!dimCard?' TOP':'  '}</div>` : ''}
