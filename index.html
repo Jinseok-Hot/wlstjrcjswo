@@ -233,6 +233,15 @@ main { padding: 20px 24px; }
       <div class="grade-legend-row">⚪ <span id="leg-g0">—</span></div>
     </div>
 
+    <div class="form-group" id="sort-group">
+      <label class="form-label">🔀 정렬 기준</label>
+      <select id="sort-sel" onchange="renderResults()">
+        <option value="amount">💰 총 투자금액</option>
+        <option value="date">📅 최근 투자일</option>
+        <option value="count">📊 투자건수</option>
+      </select>
+    </div>
+
     <button class="btn-search" onclick="runSearch()">🔍 투자자 찾기!</button>
     <button class="btn-reset" onclick="resetAll()">↺ 초기화</button>
   </aside>
@@ -337,6 +346,8 @@ function runSearch() {
   lastInput = { type, large, detail, rate, ltve, ltvr, amt };
 
   // 모집금액 필터 제거 — 등급으로만 표시
+  const hasAmt = !isNaN(amt) && amt > 0;
+
   lastResults = INVESTORS.filter(inv => {
     if (!inv.types.includes(type)) return false;
     const rm = inv.regions.some(r => {
@@ -351,6 +362,18 @@ function runSearch() {
     return true;
   });
 
+  // 모집금액 있을 때 등급 정렬 옵션 동적 추가
+  const sortSel = document.getElementById('sort-sel');
+  const hasGradeOpt = Array.from(sortSel.options).some(o => o.value === 'grade');
+  if (hasAmt && !hasGradeOpt) {
+    const opt = document.createElement('option');
+    opt.value = 'grade'; opt.textContent = '🎯 투자 가능 등급';
+    sortSel.insertBefore(opt, sortSel.firstChild);
+    sortSel.value = 'grade';
+  } else if (!hasAmt && hasGradeOpt) {
+    Array.from(sortSel.options).forEach(o => { if (o.value==='grade') sortSel.removeChild(o); });
+    if (sortSel.value === 'grade') sortSel.value = 'amount';
+  }
   renderResults();
 }
 
@@ -370,7 +393,7 @@ function sortResults(arr, key, amt) {
 }
 
 function renderResults() {
-  const sortKey = document.getElementById('sort-sel') ? document.getElementById('sort-sel').value : 'grade';
+  const sortKey = document.getElementById('sort-sel') ? document.getElementById('sort-sel').value : 'amount';
   const { type, large, detail, amt } = lastInput;
   const hasAmt = !isNaN(amt) && amt > 0;
   const sorted = sortResults(lastResults, sortKey, amt);
@@ -381,14 +404,6 @@ function renderResults() {
   html += `<div class="results-header">
     <div class="results-title">✅ 매칭 결과</div>
     <div class="count-pill">🧑‍💼 ${sorted.length}명</div>
-    <div class="sort-row">정렬
-      <select id="sort-sel" onchange="renderResults()">
-        ${hasAmt ? `<option value="grade" ${sortKey==='grade'?'selected':''}>🎯 투자 가능 등급</option>` : ''}
-        <option value="amount" ${sortKey==='amount'?'selected':''}>💰 투자금액</option>
-        <option value="date" ${sortKey==='date'?'selected':''}>📅 최근 투자일</option>
-        <option value="count" ${sortKey==='count'?'selected':''}>📊 투자건수</option>
-      </select>
-    </div>
   </div>`;
 
   if (isReg) {
@@ -477,6 +492,9 @@ function resetAll() {
   ['inp-rate','inp-ltve','inp-ltvr','inp-amt'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('amt-hint').textContent = '—';
   document.getElementById('grade-legend').style.display = 'none';
+  const sortSel2 = document.getElementById('sort-sel');
+  Array.from(sortSel2.options).forEach(o => { if (o.value==='grade') sortSel2.removeChild(o); });
+  sortSel2.value = 'amount';
   lastResults = []; lastInput = {};
   document.getElementById('main-area').innerHTML = `<div class="state-box"><div class="icon">🎮</div><p>상품 조건을 입력하고<br>투자자를 찾아보세요! 🚀</p></div>`;
 }
