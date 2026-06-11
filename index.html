@@ -21,15 +21,15 @@ header h1 { font-size: 16px; font-weight: 800; color: #fff; }
 header span { font-size: 12px; color: rgba(255,255,255,0.8); }
 .header-badge { margin-left: auto; background: rgba(255,255,255,0.22); border-radius: 20px; font-size: 11px; color: #fff; font-weight: 700; padding: 3px 12px; }
 
-.layout { display: grid; grid-template-columns: 310px 1fr; min-height: calc(100vh - 60px); }
+.layout { display: grid; grid-template-columns: 310px 1fr; min-height: calc(100vh - 66px); }
 
 aside {
   background: #fdf6ff;
   border-right: 2px dashed #e9d5ff;
   padding: 20px;
   display: flex; flex-direction: column; gap: 14px;
-  position: sticky; top: 60px;
-  height: calc(100vh - 60px);
+  position: sticky; top: 66px;
+  height: calc(100vh - 66px);
   overflow-y: auto;
 }
 .side-section-title { font-size: 10px; font-weight: 800; color: #a78bfa; text-transform: uppercase; letter-spacing: 0.1em; }
@@ -70,6 +70,14 @@ select option { background: #fff; color: #7c3aed; }
 }
 .btn-reset:hover { border-color: #a78bfa; }
 
+/* 투자 등급 범례 */
+.grade-legend {
+  background: #fff; border: 2px solid #ede9fe; border-radius: 10px;
+  padding: 10px 12px; display: flex; flex-direction: column; gap: 5px;
+}
+.grade-legend-title { font-size: 10px; font-weight: 800; color: #a78bfa; text-transform: uppercase; margin-bottom: 2px; }
+.grade-legend-row { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: #5b21b6; }
+
 main { padding: 20px 24px; }
 .results-header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
 .results-title { font-size: 14px; font-weight: 800; color: #7c3aed; flex: 1; }
@@ -96,6 +104,7 @@ main { padding: 20px 24px; }
 }
 .card:hover { border-color: #c4b5fd; }
 .card.top { border-color: #c084fc; background: linear-gradient(135deg, #fdf4ff 0%, #ede9fe 100%); }
+.card.grade-dim { opacity: 0.72; }
 
 .rank-badge {
   position: absolute; top: -10px; left: 14px;
@@ -105,6 +114,17 @@ main { padding: 20px 24px; }
 }
 .rank-badge.silver { background: #818cf8; }
 .rank-badge.bronze { background: #fb923c; }
+
+/* 투자 등급 배지 */
+.grade-badge {
+  position: absolute; top: -10px; right: 14px;
+  font-size: 10px; font-weight: 800;
+  padding: 2px 10px; border-radius: 20px;
+}
+.grade-badge.g1 { background: #dcfce7; color: #15803d; border: 1.5px solid #86efac; }
+.grade-badge.g2 { background: #fef9c3; color: #a16207; border: 1.5px solid #fde68a; }
+.grade-badge.g3 { background: #ffedd5; color: #c2410c; border: 1.5px solid #fdba74; }
+.grade-badge.g0 { background: #f1f5f9; color: #94a3b8; border: 1.5px solid #e2e8f0; }
 
 .card-top { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
 .avatar {
@@ -127,6 +147,9 @@ main { padding: 20px 24px; }
 .stat { background: #f5f3ff; border-radius: 10px; padding: 9px 8px; text-align: center; }
 .stat-val { font-size: 14px; font-weight: 900; color: #7c3aed; display: block; margin-bottom: 2px; }
 .stat-val.green { color: #059669; }
+.stat-val.yellow { color: #a16207; }
+.stat-val.orange { color: #c2410c; }
+.stat-val.gray { color: #94a3b8; }
 .stat-label { font-size: 9px; color: #a78bfa; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
 
 .card-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; }
@@ -202,6 +225,14 @@ main { padding: 20px 24px; }
       <div class="amt-hint" id="amt-hint">—</div>
     </div>
 
+    <div class="grade-legend" id="grade-legend" style="display:none">
+      <div class="grade-legend-title">💡 투자 가능 등급 기준</div>
+      <div class="grade-legend-row">🟢 <span id="leg-g1">—</span></div>
+      <div class="grade-legend-row">🟡 <span id="leg-g2">—</span></div>
+      <div class="grade-legend-row">🟠 <span id="leg-g3">—</span></div>
+      <div class="grade-legend-row">⚪ <span id="leg-g0">—</span></div>
+    </div>
+
     <button class="btn-search" onclick="runSearch()">🔍 투자자 찾기!</button>
     <button class="btn-reset" onclick="resetAll()">↺ 초기화</button>
   </aside>
@@ -242,10 +273,19 @@ function updateDetail() {
 document.getElementById('inp-amt').addEventListener('input', function() {
   const v = parseFloat(this.value);
   const hint = document.getElementById('amt-hint');
-  if (isNaN(v) || v <= 0) { hint.textContent = '—'; return; }
+  const legend = document.getElementById('grade-legend');
+  if (isNaN(v) || v <= 0) {
+    hint.textContent = '—';
+    legend.style.display = 'none';
+    return;
+  }
   const won = v * 1e6;
-  const minS = won * 0.4;
-  hint.textContent = '총 ' + fmtFull(won) + ' → 투자자 최소 ' + fmtFull(minS) + ' 필요';
+  hint.textContent = '총 ' + fmtFull(won) + ' → 40% = ' + fmtFull(won * 0.4);
+  document.getElementById('leg-g1').textContent = '1순위: 최대 단일 ' + fmtFull(won * 0.4) + ' 이상 (40%)';
+  document.getElementById('leg-g2').textContent = '2순위: 최대 단일 ' + fmtFull(won * 0.2) + ' 이상 (20%)';
+  document.getElementById('leg-g3').textContent = '3순위: 최대 단일 ' + fmtFull(won * 0.1) + ' 이상 (10%)';
+  document.getElementById('leg-g0').textContent = '참고: 그 이하';
+  legend.style.display = 'flex';
 });
 
 function fmt(n) {
@@ -261,6 +301,22 @@ function fmtFull(n) {
 function initial(name) {
   return name.replace(/주식회사|유한회사|유한책임회사|\(주\)|㈜/g,'').trim().charAt(0) || '?';
 }
+
+// 투자 등급 계산 (모집금액 없으면 등급 없음)
+function getGrade(maxSingle, amt) {
+  if (!amt || isNaN(amt) || amt <= 0) return null;
+  if (maxSingle >= amt * 0.4) return 1;
+  if (maxSingle >= amt * 0.2) return 2;
+  if (maxSingle >= amt * 0.1) return 3;
+  return 0;
+}
+
+const GRADE_INFO = {
+  1: { cls: 'g1', label: '🟢 1순위 (40%+)' },
+  2: { cls: 'g2', label: '🟡 2순위 (20%+)' },
+  3: { cls: 'g3', label: '🟠 3순위 (10%+)' },
+  0: { cls: 'g0', label: '⚪ 참고' },
+};
 
 let lastResults = [];
 let lastInput = {};
@@ -278,9 +334,9 @@ function runSearch() {
   if (!type) { alert('상품 유형을 선택해주세요! 🎯'); return; }
   if (!large) { alert('지역을 선택해주세요! 📍'); return; }
 
-  const minSingle = isNaN(amt) ? null : amt * 0.4;
-  lastInput = { type, large, detail, rate, ltve, ltvr, minSingle };
+  lastInput = { type, large, detail, rate, ltve, ltvr, amt };
 
+  // 모집금액 필터 제거 — 등급으로만 표시
   lastResults = INVESTORS.filter(inv => {
     if (!inv.types.includes(type)) return false;
     const rm = inv.regions.some(r => {
@@ -292,27 +348,33 @@ function runSearch() {
     if (!isNaN(rate) && rate < inv.rate_min) return false;
     if (!isNaN(ltve) && ltve > inv.ltv_eff_max) return false;
     if (!isNaN(ltvr) && ltvr > inv.ltv_rec_max) return false;
-    if (minSingle !== null && inv.max_single < minSingle) return false;
     return true;
   });
 
   renderResults();
 }
 
-function sortResults(arr, key) {
-  return [...arr].sort((a,b) => {
-    if (key==='date') return b.latest_date.localeCompare(a.latest_date);
-    if (key==='amount') return b.total_amt - a.total_amt;
-    if (key==='count') return b.total_count - a.total_count;
+function sortResults(arr, key, amt) {
+  return [...arr].sort((a, b) => {
+    if (key === 'grade') {
+      const ga = getGrade(a.max_single, amt) ?? 99;
+      const gb = getGrade(b.max_single, amt) ?? 99;
+      if (ga !== gb) return ga - gb;
+      return b.total_amt - a.total_amt;
+    }
+    if (key === 'date') return b.latest_date.localeCompare(a.latest_date);
+    if (key === 'amount') return b.total_amt - a.total_amt;
+    if (key === 'count') return b.total_count - a.total_count;
     return 0;
   });
 }
 
 function renderResults() {
-  const sortKey = document.getElementById('sort-sel') ? document.getElementById('sort-sel').value : 'amount';
-  const sorted = sortResults(lastResults, sortKey);
-  const { type, large, detail, minSingle } = lastInput;
-  const isReg = type==='신규' || type==='지분';
+  const sortKey = document.getElementById('sort-sel') ? document.getElementById('sort-sel').value : 'grade';
+  const { type, large, detail, amt } = lastInput;
+  const hasAmt = !isNaN(amt) && amt > 0;
+  const sorted = sortResults(lastResults, sortKey, amt);
+  const isReg = type === '신규' || type === '지분';
   const ranks = ['🥇','🥈','🥉'];
 
   let html = '';
@@ -321,6 +383,7 @@ function renderResults() {
     <div class="count-pill">🧑‍💼 ${sorted.length}명</div>
     <div class="sort-row">정렬
       <select id="sort-sel" onchange="renderResults()">
+        ${hasAmt ? `<option value="grade" ${sortKey==='grade'?'selected':''}>🎯 투자 가능 등급</option>` : ''}
         <option value="amount" ${sortKey==='amount'?'selected':''}>💰 투자금액</option>
         <option value="date" ${sortKey==='date'?'selected':''}>📅 최근 투자일</option>
         <option value="count" ${sortKey==='count'?'selected':''}>📊 투자건수</option>
@@ -340,6 +403,9 @@ function renderResults() {
 
   html += '<div class="cards">';
   sorted.forEach((inv, i) => {
+    const grade = hasAmt ? getGrade(inv.max_single, amt) : null;
+    const gradeInfo = grade !== null ? GRADE_INFO[grade] : null;
+
     const matchSet = new Set(inv.regions.filter(r => {
       if (r.large !== large) return false;
       if (detail && r.detail !== detail) return false;
@@ -361,12 +427,22 @@ function renderResults() {
       `<span class="type-tag ${t}">${t==='신규'?'🏠':t==='연장'?'🔄':t==='후취'?'✨':'🤝'} ${t}</span>`
     ).join('');
 
-    const canInvest = minSingle===null || inv.max_single>=minSingle;
+    const isTop = i === 0;
     const rankLabel = i < 3 ? ranks[i] : '#'+(i+1);
-    const isTop = i===0;
 
-    html += `<div class="card ${isTop?'top':''}">
-      ${i<3 ? `<div class="rank-badge ${i===1?'silver':i===2?'bronze':''}">${rankLabel}${i===0?' TOP MATCH':''}</div><div style="height:8px"></div>` : '<div style="height:4px"></div>'}
+    // 최대 단일 금액 컬러
+    let singleValClass = '';
+    if (grade === 1) singleValClass = 'green';
+    else if (grade === 2) singleValClass = 'yellow';
+    else if (grade === 3) singleValClass = 'orange';
+    else if (grade === 0) singleValClass = 'gray';
+
+    const dimCard = grade === 0;
+
+    html += `<div class="card ${isTop&&!dimCard?'top':''} ${dimCard?'grade-dim':''}">
+      ${i<3 ? `<div class="rank-badge ${i===1?'silver':i===2?'bronze':''}">${rankLabel}${i===0&&!dimCard?' TOP':'  '}</div>` : ''}
+      ${gradeInfo ? `<div class="grade-badge ${gradeInfo.cls}">${gradeInfo.label}</div>` : ''}
+      <div style="height:${i<3||gradeInfo?'8px':'4px'}"></div>
       <div class="card-top">
         <div class="avatar">${initial(inv.name)}</div>
         <div style="flex:1">
@@ -378,7 +454,7 @@ function renderResults() {
       <div class="card-stats">
         <div class="stat"><span class="stat-val">💰 ${fmt(inv.total_amt)}</span><span class="stat-label">총 투자금액</span></div>
         <div class="stat"><span class="stat-val">📋 ${inv.total_count}건</span><span class="stat-label">총 건수</span></div>
-        <div class="stat"><span class="stat-val ${canInvest?'green':''}">🎯 ${fmtFull(inv.max_single)}</span><span class="stat-label">최대 단일${minSingle&&canInvest?' ✅':''}</span></div>
+        <div class="stat"><span class="stat-val ${singleValClass}">🎯 ${fmtFull(inv.max_single)}</span><span class="stat-label">최대 단일 투자</span></div>
       </div>
       <div class="card-meta">
         <div class="meta-item"><div class="meta-label">💹 수익률 범위</div><div class="meta-val">${inv.rate_min}% – ${inv.rate_max}%</div></div>
@@ -400,6 +476,7 @@ function resetAll() {
   selDetail.innerHTML = '<option value="">-- 시/군/구 (선택) --</option>';
   ['inp-rate','inp-ltve','inp-ltvr','inp-amt'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('amt-hint').textContent = '—';
+  document.getElementById('grade-legend').style.display = 'none';
   lastResults = []; lastInput = {};
   document.getElementById('main-area').innerHTML = `<div class="state-box"><div class="icon">🎮</div><p>상품 조건을 입력하고<br>투자자를 찾아보세요! 🚀</p></div>`;
 }
