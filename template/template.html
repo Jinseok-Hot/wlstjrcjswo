@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>에잇퍼센트 투자자 매칭</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',-apple-system,sans-serif;background:#f5f0ff;min-height:100vh;font-size:14px}
+header{background:linear-gradient(90deg,#a855f7,#818cf8);padding:13px 22px;display:flex;align-items:center;gap:11px;box-shadow:0 4px 20px rgba(168,85,247,.3)}
+.logo-img{width:38px;height:38px;border-radius:11px;object-fit:cover;border:2px solid rgba(255,255,255,.4)}
+header h1{font-size:16px;font-weight:900;color:#fff}
+header .sub{font-size:12px;color:rgba(255,255,255,.8)}
+.hbadge{margin-left:auto;background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);border-radius:20px;font-size:11px;color:#fff;font-weight:700;padding:3px 12px}
+.tabs{display:flex;background:#fdf6ff;border-bottom:2px solid #ede9fe}
+.tab{flex:1;padding:11px;font-size:13px;font-weight:800;font-family:'Nunito',sans-serif;border:none;cursor:pointer;background:transparent;color:#a78bfa;transition:all .2s;position:relative}
+.tab.active{color:#7c3aed;background:#fff}
+.tab.active::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:2px;background:linear-gradient(90deg,#a855f7,#818cf8)}
+.panel{display:none}
+.panel.active{display:block}
+
+/* 단일 조회 */
+.layout{display:grid;grid-template-columns:310px 1fr;min-height:calc(100vh - 113px)}
+aside{background:#fdf6ff;border-right:2px dashed #ede9fe;padding:18px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;max-height:calc(100vh - 113px)}
+.stitle{font-size:10px;font-weight:900;color:#a78bfa;text-transform:uppercase;letter-spacing:.1em}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fl{font-size:12px;font-weight:700;color:#7c3aed}
+select,input[type="number"]{background:#fff;border:2px solid #ddd6fe;border-radius:9px;color:#7c3aed;font-size:12px;font-weight:600;font-family:'Nunito',sans-serif;padding:8px 11px;width:100%;outline:none;-webkit-appearance:none}
+select:focus,input:focus{border-color:#a855f7}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.ahint{font-size:10px;font-weight:600;color:#a78bfa;text-align:right;margin-top:2px;min-height:13px}
+.hr{height:1px;background:#ede9fe}
+.gleg{background:#fff;border:2px solid #ede9fe;border-radius:9px;padding:9px 11px;display:flex;flex-direction:column;gap:4px}
+.gleg-t{font-size:10px;font-weight:900;color:#a78bfa;text-transform:uppercase;margin-bottom:1px}
+.gleg-r{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#7c3aed}
+.btn-go{background:linear-gradient(90deg,#a855f7,#818cf8);border:none;border-radius:9px;color:#fff;font-size:14px;font-weight:900;font-family:'Nunito',sans-serif;padding:11px;width:100%;cursor:pointer;transition:opacity .15s,transform .1s}
+.btn-go:hover{opacity:.88}
+.btn-go:active{transform:scale(.98)}
+.btn-rst{background:#fff;border:2px solid #ede9fe;border-radius:9px;color:#a78bfa;font-size:12px;font-weight:700;font-family:'Nunito',sans-serif;padding:8px;width:100%;cursor:pointer}
+.btn-rst:hover{border-color:#a855f7}
+main{padding:18px 22px;overflow-y:auto;max-height:calc(100vh - 113px)}
+.counters{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:14px}
+.cbox{background:#fff;border:2px solid #ede9fe;border-radius:10px;padding:9px 8px;text-align:center}
+.cnum{font-size:19px;font-weight:900;color:#7c3aed;display:block}
+.clbl{font-size:9px;color:#a78bfa;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.rh{display:flex;align-items:center;gap:9px;margin-bottom:14px;flex-wrap:wrap}
+.rtitle{font-size:15px;font-weight:900;color:#5b21b6;flex:1}
+.rpill{background:#ede9fe;border:1.5px solid #c4b5fd;border-radius:20px;font-size:12px;font-weight:900;color:#5b21b6;padding:3px 13px}
+.wbanner{background:#fef9c3;border:1.5px solid #fde68a;border-radius:9px;padding:9px 13px;font-size:11px;font-weight:700;color:#a16207;display:flex;gap:7px;margin-bottom:12px}
+.sbox{text-align:center;padding:60px 20px}
+.sbox .ico{font-size:46px;margin-bottom:12px;display:block;animation:bounce 2s infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+.sbox p{font-size:14px;font-weight:700;line-height:2;color:#a78bfa}
+.cards{display:flex;flex-direction:column;gap:11px}
+.card{background:#fff;border:2px solid #ede9fe;border-radius:14px;padding:14px 17px;position:relative;transition:border-color .2s,transform .15s;opacity:0;animation:slideIn .4s ease forwards}
+@keyframes slideIn{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:translateX(0)}}
+.card:hover{border-color:#c4b5fd;transform:translateX(3px)}
+.card.top{border-color:#c084fc;background:linear-gradient(135deg,#fdf4ff,#ede9fe)}
+.card.dim{opacity:.65}
+.rbadge{position:absolute;top:-10px;left:13px;background:#a855f7;color:#fff;font-size:10px;font-weight:900;padding:2px 11px;border-radius:20px}
+.rbadge.s{background:#818cf8}
+.rbadge.b{background:#fb923c}
+.gbadge{position:absolute;top:-10px;right:13px;font-size:10px;font-weight:900;padding:2px 9px;border-radius:20px}
+.gbadge.g1{background:#dcfce7;color:#15803d;border:1.5px solid #86efac}
+.gbadge.g2{background:#fef9c3;color:#a16207;border:1.5px solid #fde68a}
+.gbadge.g3{background:#ffedd5;color:#c2410c;border:1.5px solid #fdba74}
+.gbadge.g4{background:#f1f5f9;color:#94a3b8;border:1.5px solid #e2e8f0}
+.ct{display:flex;align-items:flex-start;gap:9px;margin-bottom:9px}
+.av{width:39px;height:39px;border-radius:11px;background:linear-gradient(135deg,#f0abfc,#818cf8);display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;font-weight:900;flex-shrink:0}
+.cn{font-size:13px;font-weight:900;color:#3b0764;line-height:1.3;flex:1}
+.ld{font-size:10px;color:#a78bfa;font-weight:600;text-align:right;white-space:nowrap}
+.ttags{display:flex;gap:3px;flex-wrap:wrap;margin-top:3px}
+.tt{border-radius:5px;padding:2px 7px;font-size:10px;font-weight:900}
+.tt.신규{background:#ede9fe;color:#7c3aed}
+.tt.연장{background:#dcfce7;color:#15803d}
+.tt.후취{background:#fef9c3;color:#a16207}
+.tt.지분{background:#fce7f3;color:#be185d}
+.stats3{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:9px}
+.st{background:#f5f3ff;border-radius:9px;padding:8px 7px;text-align:center}
+.sv{font-size:14px;font-weight:900;color:#5b21b6;display:block;margin-bottom:1px}
+.sv.gr{color:#059669}
+.sv.ye{color:#a16207}
+.sv.or{color:#c2410c}
+.sv.gy{color:#94a3b8}
+.sl{font-size:9px;color:#a78bfa;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.meta4{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:9px}
+.mi{background:#f5f3ff;border-radius:7px;padding:6px 9px}
+.ml{font-size:9px;color:#a78bfa;font-weight:700;text-transform:uppercase;margin-bottom:1px}
+.mv{font-size:12px;font-weight:700;color:#5b21b6}
+.rlbl{font-size:9px;font-weight:900;color:#a78bfa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.regs{display:flex;flex-wrap:wrap;gap:3px}
+.rtag{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:5px;padding:2px 6px;font-size:10px;font-weight:600;color:#64748b}
+.rtag.m{background:#ede9fe;border-color:#c4b5fd;color:#7c3aed}
+
+/* 배치 조회 */
+.batch-wrap{padding:18px 22px}
+.batch-top{display:grid;grid-template-columns:1fr 200px;gap:11px;margin-bottom:14px}
+textarea{background:#fff;border:2px solid #ddd6fe;border-radius:9px;color:#3b0764;font-size:12px;font-weight:600;font-family:'Nunito',monospace;padding:11px;width:100%;resize:vertical;min-height:110px;outline:none;line-height:1.8}
+textarea:focus{border-color:#a855f7}
+.bhint{background:#f5f3ff;border-radius:9px;padding:10px 11px;font-size:10px;color:#5b21b6;font-weight:600;line-height:1.9;margin-bottom:7px}
+.bgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.bcard{background:#fff;border:2px solid #ede9fe;border-radius:13px;padding:13px 15px;opacity:0;transform:translateY(18px) scale(.96);transition:opacity .35s ease,transform .35s ease}
+.bcard.show{opacity:1;transform:translateY(0) scale(1)}
+.bcard:hover{border-color:#c4b5fd}
+.bnum{font-size:10px;font-weight:900;color:#a78bfa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.bcond{font-size:11px;font-weight:700;color:#5b21b6;background:#f5f3ff;border-radius:5px;padding:3px 7px;display:inline-block;margin-bottom:9px}
+.binvs{display:flex;flex-wrap:wrap;gap:4px}
+.btag{border-radius:7px;padding:3px 9px;font-size:11px;font-weight:800;transition:transform .15s;cursor:default}
+.btag:hover{transform:scale(1.05)}
+.btag.g1{background:#dcfce7;border:1.5px solid #86efac;color:#15803d}
+.btag.g2{background:#fef9c3;border:1.5px solid #fde68a;color:#a16207}
+.btag.g3{background:#ffedd5;border:1.5px solid #fdba74;color:#c2410c}
+.btag.g4{background:#f1f5f9;border:1.5px solid #e2e8f0;color:#94a3b8}
+.bnone{color:#a78bfa;font-size:11px;font-weight:700}
+.berr{color:#ef4444;font-size:11px;font-weight:700}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#ede9fe;border-radius:3px}
+</style>
+</head>
+<body>
+<header>
+  <img class="logo-img" src="LOGO_B64_PLACEHOLDER" alt="에잇퍼센트">
+  <h1>투자자 매칭 🎯✨</h1>
+  <span class="sub">법인 투자자 조회</span>
+  <div class="hbadge" id="data-badge">📅 2026.04–06 · 70명</div>
+</header>
+<div class="tabs">
+  <button class="tab active" id="tab-single" onclick="switchTab('single')">🔍 단일 조회</button>
+  <button class="tab" id="tab-batch" onclick="switchTab('batch')">📋 배치 조회</button>
+</div>
+
+<!-- 단일 조회 -->
+<div id="panel-single" class="panel active">
+<div class="layout">
+  <aside>
+    <div class="stitle">🗂️ 상품 조건 입력</div>
+    <div class="fg">
+      <label class="fl">🏷️ 상품 유형</label>
+      <select id="sel-type">
+        <option value="">-- 선택해주세요 --</option>
+        <option value="신규">🏠 신규 (규제 적용)</option>
+        <option value="후취">✨ 후취담보 (비규제)</option>
+        <option value="연장">🔄 연장 (비규제)</option>
+        <option value="지분">🤝 지분대출 (규제 적용)</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label class="fl">📍 지역</label>
+      <select id="sel-large" onchange="updateDetail()"><option value="">-- 광역시도 --</option></select>
+      <select id="sel-detail" style="margin-top:5px"><option value="">-- 시/군/구 (선택) --</option></select>
+    </div>
+    <div class="hr"></div>
+    <div class="fg">
+      <label class="fl">💹 수익률 (%)</label>
+      <input type="number" id="inp-rate" placeholder="예: 9.5" step="0.1">
+    </div>
+    <div class="row2">
+      <div class="fg"><label class="fl">📉 유효담보 (%)</label><input type="number" id="inp-ltve" placeholder="예: 45" step="0.1"></div>
+      <div class="fg"><label class="fl">📊 담보인정 (%)</label><input type="number" id="inp-ltvr" placeholder="예: 60" step="0.1"></div>
+    </div>
+    <div class="fg">
+      <label class="fl">💰 모집금액 (백만원)</label>
+      <input type="number" id="inp-amt" placeholder="예: 100" step="1">
+      <div class="ahint" id="amt-hint">—</div>
+    </div>
+    <div class="gleg" id="grade-legend" style="display:none">
+      <div class="gleg-t">💡 투자 가능 등급 기준</div>
+      <div class="gleg-r">🟢 <span id="leg-g1">—</span></div>
+      <div class="gleg-r">🟡 <span id="leg-g2">—</span></div>
+      <div class="gleg-r">🟠 <span id="leg-g3">—</span></div>
+      <div class="gleg-r">⚪ <span id="leg-g0">—</span></div>
+    </div>
+    <div class="fg">
+      <label class="fl">🔀 정렬 기준</label>
+      <select id="sort-sel" onchange="renderResults()">
+        <option value="amount">💰 총 투자금액</option>
+        <option value="date">📅 최근 투자일</option>
+        <option value="count">📊 투자건수</option>
+      </select>
+    </div>
+    <button class="btn-go" onclick="runSearch()">🔍 투자자 찾기! 🚀</button>
+    <button class="btn-rst" onclick="resetAll()">↺ 초기화</button>
+  </aside>
+  <main id="main-area">
+    <div class="sbox"><span class="ico">🎮</span><p>상품 조건을 입력하고<br>투자자를 찾아보세요! 🚀✨</p></div>
+  </main>
+</div>
+</div>
+
+<!-- 배치 조회 -->
+<div id="panel-batch" class="panel">
+  <div class="batch-wrap">
+    <div class="batch-top">
+      <textarea id="batch-input" placeholder="📌 슬래시 형식: 신규/서울특별시/강남구/9.5/45/60/100&#10;📌 엑셀 복붙: 행 선택 후 그대로 붙여넣기 (탭 구분 자동 인식)&#10;&#10;여러 줄 입력 가능해요! 😊" spellcheck="false"></textarea>
+      <div>
+        <div class="bhint">📌 <b>슬래시 형식</b><br>유형/광역시도/시군구/<br>수익률/유효담보/<br>담보인정/모집(백만)<br><br>📌 <b>엑셀 복붙</b><br>순번·ID·이름·구분·<b>종류</b>·<b>물건지</b>·면적·<b>금액</b>·<b>금리</b>·기간·시세·구분·<b>LTV</b></div>
+        <button class="btn-go" onclick="runBatch()">📋 배치 조회! 🎯</button>
+        <button class="btn-rst" style="margin-top:6px" onclick="document.getElementById('batch-input').value='';document.getElementById('batch-out').innerHTML=''">↺ 초기화</button>
+      </div>
+    </div>
+    <div id="batch-out"></div>
+  </div>
+</div>
+
+<script>
+const RAW=DATA_JSON_PLACEHOLDER;
+const INVESTORS=RAW.investors;
+const REGION_MAP=RAW.region_map;
+const selLarge=document.getElementById('sel-large');
+const selDetail=document.getElementById('sel-detail');
+Object.keys(REGION_MAP).sort().forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;selLarge.appendChild(o);});
+function updateDetail(){const v=selLarge.value;selDetail.innerHTML='<option value="">-- 시/군/구 (선택) --</option>';if(!v)return;(REGION_MAP[v]||[]).forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=d;selDetail.appendChild(o);});}
+document.getElementById('inp-amt').addEventListener('input',function(){
+  const v=parseFloat(this.value),hint=document.getElementById('amt-hint'),leg=document.getElementById('grade-legend');
+  if(isNaN(v)||v<=0){hint.textContent='—';leg.style.display='none';return;}
+  const w=v*1e6;
+  hint.textContent='총 '+ff(w)+' → 40% = '+ff(w*.4);
+  document.getElementById('leg-g1').textContent='1순위: '+ff(w*.4)+' 이상 (40%)';
+  document.getElementById('leg-g2').textContent='2순위: '+ff(w*.2)+' 이상 (20%)';
+  document.getElementById('leg-g3').textContent='3순위: '+ff(w*.1)+' 이상 (10%)';
+  document.getElementById('leg-g0').textContent='참고: 그 이하';
+  leg.style.display='flex';
+});
+function fmt(n){if(n>=1e8)return(n/1e8).toFixed(1)+'억';if(n>=1e4)return Math.round(n/1e4)+'만';return n.toLocaleString();}
+function ff(n){if(n>=1e8){const b=Math.floor(n/1e8),m=Math.round((n%1e8)/1e4);return m>0?b+'억 '+m+'만':b+'억';}if(n>=1e4)return Math.round(n/1e4)+'만';return n.toLocaleString()+'원';}
+function ini(name){return name.replace(/주식회사|유한회사|유한책임회사|\(주\)|㈜/g,'').trim().charAt(0)||'?';}
+function getGrade(ms,amt){if(!amt||isNaN(amt)||amt<=0)return null;if(ms>=amt*.4)return 1;if(ms>=amt*.2)return 2;if(ms>=amt*.1)return 3;return 4;}
+const GI={1:{cls:'g1',label:'🟢 1순위 (40%+)'},2:{cls:'g2',label:'🟡 2순위 (20%+)'},3:{cls:'g3',label:'🟠 3순위 (10%+)'},4:{cls:'g4',label:'⚪ 참고'}};
+function switchTab(t){
+  document.getElementById('panel-single').classList.toggle('active',t==='single');
+  document.getElementById('panel-batch').classList.toggle('active',t==='batch');
+  document.getElementById('tab-single').classList.toggle('active',t==='single');
+  document.getElementById('tab-batch').classList.toggle('active',t==='batch');
+}
+function animCnt(id,target,suffix,dur){const el=document.getElementById(id);if(!el)return;let s=null;const step=ts=>{if(!s)s=ts;const p=Math.min((ts-s)/dur,1);el.textContent=Math.round(p*target)+suffix;if(p<1)requestAnimationFrame(step);};requestAnimationFrame(step);}
+let lastResults=[],lastInput={};
+function runSearch(){
+  const type=document.getElementById('sel-type').value;
+  const large=selLarge.value,detail=selDetail.value;
+  const rate=parseFloat(document.getElementById('inp-rate').value);
+  const ltve=parseFloat(document.getElementById('inp-ltve').value);
+  const ltvr=parseFloat(document.getElementById('inp-ltvr').value);
+  const amtMil=parseFloat(document.getElementById('inp-amt').value);
+  const amt=isNaN(amtMil)?NaN:amtMil*1e6;
+  const hasAmt=!isNaN(amt)&&amt>0;
+  if(!type){alert('상품 유형을 선택해주세요! 🎯');return;}
+  if(!large){alert('지역을 선택해주세요! 📍');return;}
+  lastInput={type,large,detail,rate,ltve,ltvr,amt};
+  lastResults=INVESTORS.filter(inv=>{
+    if(!inv.types.includes(type))return false;
+    const rm=inv.regions.some(r=>{if(r.large!==large)return false;if(detail&&r.detail!==detail)return false;return true;});
+    if(!rm)return false;
+    if(!isNaN(rate)&&rate<inv.rate_min)return false;
+    if(!isNaN(ltve)&&ltve>inv.ltv_eff_max)return false;
+    if(!isNaN(ltvr)&&ltvr>inv.ltv_rec_max)return false;
+    return true;
+  });
+  const ss=document.getElementById('sort-sel');
+  const hasG=Array.from(ss.options).some(o=>o.value==='grade');
+  if(hasAmt&&!hasG){const o=document.createElement('option');o.value='grade';o.textContent='🎯 투자 가능 등급';ss.insertBefore(o,ss.firstChild);ss.value='grade';}
+  else if(!hasAmt&&hasG){Array.from(ss.options).forEach(o=>{if(o.value==='grade')ss.removeChild(o);});if(ss.value==='grade')ss.value='amount';}
+  renderResults();
+}
+function sortArr(arr,key,amt){
+  return [...arr].sort((a,b)=>{
+    if(key==='grade'){const ga=getGrade(a.max_single,amt)??5,gb=getGrade(b.max_single,amt)??5;if(ga!==gb)return ga-gb;return b.total_amt-a.total_amt;}
+    if(key==='date')return b.latest_date.localeCompare(a.latest_date);
+    if(key==='amount')return b.total_amt-a.total_amt;
+    if(key==='count')return b.total_count-a.total_count;
+    return 0;
+  });
+}
+function renderResults(){
+  const sortKey=document.getElementById('sort-sel').value;
+  const{type,large,detail}=lastInput;
+  const amtMilNow=parseFloat(document.getElementById('inp-amt').value);
+  const amt=isNaN(amtMilNow)?NaN:amtMilNow*1e6;
+  const hasAmt=!isNaN(amt)&&amt>0;
+  const sorted=sortArr(lastResults,sortKey,amt);
+  const isReg=type==='신규'||type==='지분';
+  const ranks=['🥇','🥈','🥉'];
+  let html='';
+  html+=`<div class="counters"><div class="cbox"><span class="cnum" id="cnt-m">0</span><span class="clbl">🧑‍💼 매칭 투자자</span></div><div class="cbox"><span class="cnum" id="cnt-a">0억</span><span class="clbl">💰 총 투자금액</span></div><div class="cbox"><span class="cnum" id="cnt-c">0건</span><span class="clbl">📋 총 투자건수</span></div></div>`;
+  html+=`<div class="rh"><div class="rtitle">✅ 매칭 결과</div><div class="rpill">🧑‍💼 ${sorted.length}명</div></div>`;
+  if(isReg)html+=`<div class="wbanner">⚠️ <span><b>${type} 상품</b>은 규제 적용 구간이에요. 담보비율 필터는 참고용으로만 활용해주세요!</span></div>`;
+  if(sorted.length===0){html+=`<div class="sbox"><span class="ico">😢</span><p>조건에 맞는 투자자가 없어요.<br>조건을 조금 완화해보세요! 🙏</p></div>`;document.getElementById('main-area').innerHTML=html;return;}
+  html+='<div class="cards">';
+  sorted.forEach((inv,i)=>{
+    const grade=hasAmt?getGrade(inv.max_single,amt):null;
+    const gi=grade!==null?GI[grade]:null;
+    const matchSet=new Set(inv.regions.filter(r=>{if(r.large!==large)return false;if(detail&&r.detail!==detail)return false;return true;}).map(r=>r.large+r.detail));
+    const sr=[...inv.regions].sort((a,b)=>(matchSet.has(a.large+a.detail)?0:1)-(matchSet.has(b.large+b.detail)?0:1));
+    const rHtml=sr.slice(0,10).map(r=>{const isM=matchSet.has(r.large+r.detail);const lbl=r.large===r.detail?r.large:r.large.replace('특별시','').replace('광역시','').replace('특별자치시','').replace('특별자치도','').replace('도','').trim()+' '+r.detail;return`<span class="rtag ${isM?'m':''}">${isM?'📍 ':''}${lbl}</span>`;}).join('')+(sr.length>10?`<span class="rtag">+${sr.length-10}개</span>`:'');
+    const tHtml=inv.types.map(t=>`<span class="tt ${t}">${t==='신규'?'🏠':t==='연장'?'🔄':t==='후취'?'✨':'🤝'} ${t}</span>`).join('');
+    const dim=grade===4;
+    let sc='';if(grade===1)sc='gr';else if(grade===2)sc='ye';else if(grade===3)sc='or';else if(grade===4)sc='gy';
+    html+=`<div class="card ${i===0&&!dim?'top':''} ${dim?'dim':''}" style="animation-delay:${i*.08}s">
+      ${i<3?`<div class="rbadge ${i===1?'s':i===2?'b':''}">${ranks[i]}${i===0?' TOP MATCH':''}</div>`:''}
+      ${gi?`<div class="gbadge ${gi.cls}">${gi.label}</div>`:''}
+      <div style="height:${i<3||gi?'9px':'4px'}"></div>
+      <div class="ct">
+        <div class="av">${ini(inv.name)}</div>
+        <div style="flex:1"><div class="cn">${inv.name}</div><div class="ttags">${tHtml}</div></div>
+        <div class="ld">🕐 최근 투자<br>${inv.latest_date}</div>
+      </div>
+      <div class="stats3">
+        <div class="st"><span class="sv">💰 ${fmt(inv.total_amt)}</span><span class="sl">총 투자금액</span></div>
+        <div class="st"><span class="sv">📋 ${inv.total_count}건</span><span class="sl">총 건수</span></div>
+        <div class="st"><span class="sv ${sc}">🎯 ${ff(inv.max_single)}</span><span class="sl">최대 단일${hasAmt&&grade===1?' ✅':''}</span></div>
+      </div>
+      <div class="meta4">
+        <div class="mi"><div class="ml">💹 수익률 범위</div><div class="mv">${inv.rate_min}% – ${inv.rate_max}%</div></div>
+        <div class="mi"><div class="ml">📉 유효담보 최대</div><div class="mv">${inv.ltv_eff_max}%</div></div>
+        <div class="mi"><div class="ml">📊 담보인정 최대</div><div class="mv">${inv.ltv_rec_max}%</div></div>
+        <div class="mi"><div class="ml">🗺️ 투자 지역 수</div><div class="mv">${inv.regions.length}개 지역</div></div>
+      </div>
+      <div class="rlbl">🗺️ 투자 지역 이력</div>
+      <div class="regs">${rHtml}</div>
+    </div>`;
+  });
+  html+='</div>';
+  document.getElementById('main-area').innerHTML=html;
+  const ta=sorted.reduce((s,inv)=>s+inv.total_amt,0);
+  const tc=sorted.reduce((s,inv)=>s+inv.total_count,0);
+  animCnt('cnt-m',sorted.length,'명',600);
+  animCnt('cnt-a',Math.round(ta/1e8),'억',800);
+  animCnt('cnt-c',tc,'건',700);
+}
+function resetAll(){
+  document.getElementById('sel-type').value='';selLarge.value='';selDetail.innerHTML='<option value="">-- 시/군/구 (선택) --</option>';
+  ['inp-rate','inp-ltve','inp-ltvr','inp-amt'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('amt-hint').textContent='—';document.getElementById('grade-legend').style.display='none';
+  const ss=document.getElementById('sort-sel');Array.from(ss.options).forEach(o=>{if(o.value==='grade')ss.removeChild(o);});ss.value='amount';
+  lastResults=[];lastInput={};
+  document.getElementById('main-area').innerHTML=`<div class="sbox"><span class="ico">🎮</span><p>상품 조건을 입력하고<br>투자자를 찾아보세요! 🚀✨</p></div>`;
+}
+const TM={'신규':'신규','일반':'신규','후취':'후취','연장':'연장','지분':'지분'};
+function parseLine(line){
+  const c=line.replace(/^\s*\d+[.)]\s*/,'').trim();if(!c)return null;
+  const tabs=(c.match(/\t/g)||[]).length;
+  if(tabs>=3)return parseExcel(c);
+  const p=c.split('/').map(x=>x.trim());if(p.length<4)return{error:'컬럼 부족'};
+  const[tr,large,detail,rr,lr,lvr,ar]=p;
+  const type=TM[tr];if(!type)return{error:`유형 불가: "${tr}"`};
+  if(!large)return{error:'광역시도 없음'};
+  return{type,large,detail:detail||'',rate:parseFloat(rr)||NaN,ltve:parseFloat(lr)||NaN,ltvr:parseFloat(lvr)||NaN,amt:ar?parseFloat(ar.replace(/,/g,''))*1e6:NaN};
+}
+function parseExcel(line){
+  const cols=line.split('\t').map(c=>c.trim());if(cols.length<9)return{error:'엑셀 컬럼 부족'};
+  const type=TM[(cols[4]||'').replace(/\s/g,'')];if(!type)return{error:`종류 불가: "${cols[4]}"`};
+  const{large,detail}=parseAddr(cols[5]||'');if(!large)return{error:`주소 파싱 실패`};
+  const amt=parseFloat((cols[7]||'').replace(/[,\s]/g,''))||NaN;
+  const rate=parseFloat((cols[8]||'').replace('%',''))||NaN;
+  const ltvRaw=cols[12]||'';
+  return{type,large,detail,rate,ltve:ltvRaw?parseFloat(ltvRaw.replace('%',''))||NaN:NaN,ltvr:NaN,amt,ltvMissing:!ltvRaw};
+}
+function parseAddr(addr){
+  const p=addr.split(' ');if(!p.length)return{large:'',detail:''};
+  const large=p[0];let detail='';
+  for(let i=1;i<p.length;i++){if(p[i].endsWith('구')||p[i].endsWith('시')||p[i].endsWith('군')){detail=p[i];break;}}
+  return{large,detail};
+}
+function filterInv(cond){
+  const{type,large,detail,rate,ltve,ltvr}=cond;
+  return INVESTORS.filter(inv=>{
+    if(!inv.types.includes(type))return false;
+    const rm=inv.regions.some(r=>{if(r.large!==large)return false;if(detail&&r.detail!==detail)return false;return true;});
+    if(!rm)return false;
+    if(!isNaN(rate)&&rate<inv.rate_min)return false;
+    if(!isNaN(ltve)&&ltve>inv.ltv_eff_max)return false;
+    if(!isNaN(ltvr)&&ltvr>inv.ltv_rec_max)return false;
+    return true;
+  });
+}
+function runBatch(){
+  const raw=document.getElementById('batch-input').value;
+  const lines=raw.split('\n').filter(l=>l.trim());
+  if(!lines.length){alert('내용을 입력해주세요! 📝');return;}
+  let num=0;const cards=[];
+  lines.forEach(line=>{
+    if(!line.trim())return;num++;
+    const cond=parseLine(line);
+    if(!cond)return;
+    if(cond.error){cards.push(`<div class="bcard"><div class="bnum">📌 ${num}번</div><div class="berr">⚠️ ${cond.error}</div></div>`);return;}
+    const res=filterInv(cond);
+    const sorted=[...res].sort((a,b)=>{const ga=getGrade(a.max_single,cond.amt)??5,gb=getGrade(b.max_single,cond.amt)??5;if(ga!==gb)return ga-gb;return b.total_amt-a.total_amt;});
+    const ltvW=cond.ltvMissing?'<span style="color:#ef4444;font-size:10px;font-weight:800;margin-left:5px">⚠️ LTV없음</span>':'';
+    const cLabel=[cond.type,cond.large.replace('특별시','').replace('광역시','').replace('특별자치시','').replace('특별자치도','').replace('도','').trim(),cond.detail||'전체',!isNaN(cond.rate)?cond.rate+'%':'',!isNaN(cond.ltve)?'유효'+cond.ltve+'%':'',!isNaN(cond.amt)?fmt(cond.amt):''].filter(Boolean).join(' · ');
+    const invH=sorted.length===0?'<span class="bnone">😢 조건 맞는 투자자 없음</span>':sorted.map(inv=>{const g=getGrade(inv.max_single,cond.amt);const cls=g===1?'g1':g===2?'g2':g===3?'g3':'g4';const e=g===1?'🟢':g===2?'🟡':g===3?'🟠':'⚪';const sn=inv.name.replace('주식회사','').replace('(주)','').replace('㈜','').trim();return`<span class="btag ${cls}">${e} ${sn}</span>`;}).join('');
+    cards.push(`<div class="bcard"><div class="bnum">📌 ${num}번 조회</div><div class="bcond">${cLabel}${ltvW}</div><div class="binvs">${invH}</div></div>`);
+  });
+  const html=`<div class="rh"><div class="rtitle">✅ 배치 조회 결과</div><div class="rpill">📋 ${num}건</div></div><div class="bgrid">${cards.join('')}</div>`;
+  document.getElementById('batch-out').innerHTML=html;
+  setTimeout(()=>document.querySelectorAll('.bcard').forEach((c,i)=>setTimeout(()=>c.classList.add('show'),i*80)),50);
+}
+</script>
+</body>
+</html>
