@@ -166,13 +166,6 @@ main { padding: 20px 24px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #e9d5ff; border-radius: 3px; }
 
-.upload-btn {
-  background: rgba(255,255,255,0.22); border: 1.5px solid rgba(255,255,255,0.4);
-  border-radius: 20px; font-size: 11px; color: #fff; font-weight: 700;
-  padding: 4px 12px; cursor: pointer; white-space: nowrap;
-  transition: background 0.15s;
-}
-.upload-btn:hover { background: rgba(255,255,255,0.35); }
 
 .upload-toast {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
@@ -245,10 +238,6 @@ main { padding: 20px 24px; }
   <h1>투자자 매칭 🎯</h1>
   <span>법인 투자자 조회</span>
   <div class="header-badge" id="data-badge">📅 2026.04–2026.06 · 70명</div>
-  <label class="upload-btn" title="투자내역 엑셀 업로드">
-    📂 데이터 업데이트
-    <input type="file" id="upload-input" accept=".xlsx,.xls" style="display:none" onchange="handleUpload(event)">
-  </label>
 </header>
 
 <div class="layout">
