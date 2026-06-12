@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>에잇퍼센트 투자자 매칭</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Nunito', -apple-system, sans-serif; background: #f5f0ff; min-height: 100vh; font-size: 14px; }
+
+header {
+  background: linear-gradient(90deg, #a855f7, #818cf8);
+  padding: 14px 24px;
+  display: flex; align-items: center; gap: 12px;
+  position: sticky; top: 0; z-index: 100;
+}
+.logo-img { width: 38px; height: 38px; border-radius: 10px; object-fit: cover; }
+header h1 { font-size: 16px; font-weight: 800; color: #fff; }
+header span { font-size: 12px; color: rgba(255,255,255,0.8); }
+.header-badge { margin-left: auto; background: rgba(255,255,255,0.22); border-radius: 20px; font-size: 11px; color: #fff; font-weight: 700; padding: 3px 12px; }
+
+.layout { display: grid; grid-template-columns: 310px 1fr; min-height: calc(100vh - 66px); }
+
+aside {
+  background: #fdf6ff;
+  border-right: 2px dashed #e9d5ff;
+  padding: 20px;
+  display: flex; flex-direction: column; gap: 14px;
+  position: sticky; top: 66px;
+  height: calc(100vh - 66px);
+  overflow-y: auto;
+}
+.side-section-title { font-size: 10px; font-weight: 800; color: #a78bfa; text-transform: uppercase; letter-spacing: 0.1em; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-label { font-size: 12px; font-weight: 700; color: #7c3aed; }
+select, input[type="number"] {
+  background: #fff;
+  border: 2px solid #ddd6fe;
+  border-radius: 10px;
+  color: #7c3aed;
+  font-size: 12px; font-weight: 600;
+  font-family: 'Nunito', sans-serif;
+  padding: 8px 12px; width: 100%;
+  outline: none;
+  transition: border-color 0.15s;
+  -webkit-appearance: none;
+}
+select:focus, input[type="number"]:focus { border-color: #a78bfa; }
+select option { background: #fff; color: #7c3aed; }
+.input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.amt-hint { font-size: 10px; font-weight: 600; color: #a78bfa; text-align: right; margin-top: 2px; min-height: 14px; }
+.divider { height: 1px; background: #ede9fe; }
+
+.btn-search {
+  background: linear-gradient(90deg, #a855f7, #818cf8);
+  border: none; border-radius: 12px; color: #fff;
+  font-size: 14px; font-weight: 800; font-family: 'Nunito', sans-serif;
+  padding: 12px; width: 100%; cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.btn-search:hover { opacity: 0.88; }
+.btn-search:active { transform: scale(0.98); }
+.btn-reset {
+  background: #fff; border: 2px solid #e9d5ff; border-radius: 12px;
+  color: #a78bfa; font-size: 12px; font-weight: 700;
+  font-family: 'Nunito', sans-serif; padding: 8px; width: 100%; cursor: pointer;
+  transition: border-color 0.15s;
+}
+.btn-reset:hover { border-color: #a78bfa; }
+
+/* 투자 등급 범례 */
+.grade-legend {
+  background: #fff; border: 2px solid #ede9fe; border-radius: 10px;
+  padding: 10px 12px; display: flex; flex-direction: column; gap: 5px;
+}
+.grade-legend-title { font-size: 10px; font-weight: 800; color: #a78bfa; text-transform: uppercase; margin-bottom: 2px; }
+.grade-legend-row { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: #5b21b6; }
+
+main { padding: 20px 24px; }
+.results-header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.results-title { font-size: 14px; font-weight: 800; color: #7c3aed; flex: 1; }
+.count-pill { background: #ede9fe; border: 1.5px solid #c4b5fd; border-radius: 20px; font-size: 12px; font-weight: 800; color: #7c3aed; padding: 2px 12px; }
+.sort-row { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: #a78bfa; }
+.sort-row select { width: auto; padding: 5px 10px; font-size: 11px; }
+
+.warn-banner {
+  background: #fef9c3; border: 1.5px solid #fde68a; border-radius: 10px;
+  padding: 10px 14px; font-size: 11px; font-weight: 700; color: #a16207;
+  display: flex; gap: 8px; align-items: flex-start; margin-bottom: 12px;
+}
+
+.state-box { text-align: center; padding: 60px 24px; color: #c4b5fd; }
+.state-box .icon { font-size: 40px; margin-bottom: 12px; }
+.state-box p { font-size: 14px; font-weight: 700; line-height: 2; color: #a78bfa; }
+
+.cards { display: flex; flex-direction: column; gap: 12px; }
+
+.card {
+  background: #fff; border: 2px solid #ede9fe; border-radius: 16px;
+  padding: 16px 18px; position: relative;
+  transition: border-color 0.15s;
+}
+.card:hover { border-color: #c4b5fd; }
+.card.top { border-color: #c084fc; background: linear-gradient(135deg, #fdf4ff 0%, #ede9fe 100%); }
+.card.grade-dim { opacity: 0.72; }
+
+.rank-badge {
+  position: absolute; top: -10px; left: 14px;
+  background: #a855f7; color: #fff;
+  font-size: 10px; font-weight: 800;
+  padding: 2px 12px; border-radius: 20px;
+}
+.rank-badge.silver { background: #818cf8; }
+.rank-badge.bronze { background: #fb923c; }
+
+/* 투자 등급 배지 */
+.grade-badge {
+  position: absolute; top: -10px; right: 14px;
+  font-size: 10px; font-weight: 800;
+  padding: 2px 10px; border-radius: 20px;
+}
+.grade-badge.g1 { background: #dcfce7; color: #15803d; border: 1.5px solid #86efac; }
+.grade-badge.g2 { background: #fef9c3; color: #a16207; border: 1.5px solid #fde68a; }
+.grade-badge.g3 { background: #ffedd5; color: #c2410c; border: 1.5px solid #fdba74; }
+.grade-badge.g0 { background: #f1f5f9; color: #94a3b8; border: 1.5px solid #e2e8f0; }
+
+.card-top { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+.avatar {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: linear-gradient(135deg, #f0abfc, #818cf8);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 16px; font-weight: 900; flex-shrink: 0;
+}
+.inv-name { font-size: 14px; font-weight: 800; color: #3b0764; line-height: 1.3; flex: 1; }
+.latest-date { font-size: 10px; color: #a78bfa; font-weight: 600; text-align: right; white-space: nowrap; }
+
+.type-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+.type-tag { border-radius: 6px; padding: 2px 8px; font-size: 10px; font-weight: 800; }
+.type-tag.신규 { background: #ede9fe; color: #7c3aed; }
+.type-tag.연장 { background: #dcfce7; color: #15803d; }
+.type-tag.후취 { background: #fef9c3; color: #a16207; }
+.type-tag.지분 { background: #fce7f3; color: #be185d; }
+
+.card-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-bottom: 10px; }
+.stat { background: #f5f3ff; border-radius: 10px; padding: 9px 8px; text-align: center; }
+.stat-val { font-size: 14px; font-weight: 900; color: #7c3aed; display: block; margin-bottom: 2px; }
+.stat-val.green { color: #059669; }
+.stat-val.yellow { color: #a16207; }
+.stat-val.orange { color: #c2410c; }
+.stat-val.gray { color: #94a3b8; }
+.stat-label { font-size: 9px; color: #a78bfa; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+
+.card-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+.meta-item { background: #f5f3ff; border-radius: 8px; padding: 7px 10px; }
+.meta-label { font-size: 9px; color: #a78bfa; font-weight: 700; text-transform: uppercase; margin-bottom: 2px; }
+.meta-val { font-size: 12px; font-weight: 700; color: #5b21b6; }
+
+.region-section-label { font-size: 9px; font-weight: 800; color: #a78bfa; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+.regions { display: flex; flex-wrap: wrap; gap: 4px; }
+.region-tag { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; padding: 2px 7px; font-size: 10px; font-weight: 600; color: #64748b; }
+.region-tag.match { background: #ede9fe; border-color: #c4b5fd; color: #7c3aed; }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #e9d5ff; border-radius: 3px; }
+
+.upload-btn {
+  background: rgba(255,255,255,0.22); border: 1.5px solid rgba(255,255,255,0.4);
+  border-radius: 20px; font-size: 11px; color: #fff; font-weight: 700;
+  padding: 4px 12px; cursor: pointer; white-space: nowrap;
+  transition: background 0.15s;
+}
+.upload-btn:hover { background: rgba(255,255,255,0.35); }
+
+.upload-toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: #3b0764; color: #fff; font-size: 13px; font-weight: 700;
+  padding: 10px 20px; border-radius: 20px; z-index: 999;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  opacity: 0; transition: opacity 0.3s;
+  pointer-events: none;
+}
+.upload-toast.show { opacity: 1; }
+
+/* 탭 */
+.tab-bar { display: flex; gap: 0; border-bottom: 2px solid #e9d5ff; margin-bottom: 16px; }
+.tab-btn {
+  flex: 1; padding: 10px; font-size: 12px; font-weight: 800;
+  font-family: 'Nunito', sans-serif; border: none; cursor: pointer;
+  background: #f5f0ff; color: #a78bfa;
+  transition: background 0.15s, color 0.15s;
+}
+.tab-btn:first-child { border-radius: 12px 0 0 0; }
+.tab-btn:last-child { border-radius: 0 12px 0 0; }
+.tab-btn.active { background: #fff; color: #7c3aed; border-bottom: 2px solid #a855f7; margin-bottom: -2px; }
+
+/* 배치 입력 */
+.batch-wrap { display: flex; flex-direction: column; gap: 10px; }
+.batch-textarea {
+  background: #fff; border: 2px solid #ddd6fe; border-radius: 10px;
+  color: #3b0764; font-size: 12px; font-weight: 600;
+  font-family: 'Nunito', monospace; padding: 10px 12px;
+  width: 100%; resize: vertical; min-height: 120px; outline: none;
+  line-height: 1.8;
+}
+.batch-textarea:focus { border-color: #a78bfa; }
+.batch-hint {
+  background: #f5f3ff; border-radius: 8px; padding: 8px 12px;
+  font-size: 10px; color: #7c3aed; font-weight: 600; line-height: 1.8;
+}
+.batch-result-item {
+  background: #fff; border: 2px solid #ede9fe; border-radius: 12px;
+  padding: 12px 16px; margin-bottom: 8px;
+}
+.batch-result-num {
+  font-size: 11px; font-weight: 800; color: #a78bfa;
+  margin-bottom: 6px;
+}
+.batch-result-cond {
+  font-size: 11px; font-weight: 600; color: #5b21b6;
+  margin-bottom: 8px; background: #f5f3ff; border-radius: 6px;
+  padding: 4px 8px; display: inline-block;
+}
+.batch-result-names { display: flex; flex-wrap: wrap; gap: 5px; }
+.batch-inv-tag {
+  background: #ede9fe; border: 1.5px solid #c4b5fd;
+  border-radius: 8px; padding: 3px 10px;
+  font-size: 12px; font-weight: 700; color: #7c3aed;
+}
+.batch-inv-tag.g1 { background: #dcfce7; border-color: #86efac; color: #15803d; }
+.batch-inv-tag.g2 { background: #fef9c3; border-color: #fde68a; color: #a16207; }
+.batch-inv-tag.g3 { background: #ffedd5; border-color: #fdba74; color: #c2410c; }
+.batch-inv-tag.g4 { background: #f1f5f9; border-color: #e2e8f0; color: #94a3b8; }
+.batch-error { color: #ef4444; font-size: 11px; font-weight: 700; }
+.batch-none { color: #a78bfa; font-size: 11px; font-weight: 700; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<header>
+  <img class="logo-img" src="LOGO_B64_PLACEHOLDER" alt="에잇퍼센트 로고">
+  <h1>투자자 매칭 🎯</h1>
+  <span>법인 투자자 조회</span>
+  <div class="header-badge" id="data-badge">📅 2026.04–06 · 70명</div>
+  <label class="upload-btn" title="투자내역 엑셀 업로드">
+    📂 데이터 업데이트
+    <input type="file" id="upload-input" accept=".xlsx,.xls" style="display:none" onchange="handleUpload(event)">
+  </label>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tab-single" onclick="switchTab('single')">🔍 단일 조회</button>
+      <button class="tab-btn" id="tab-batch" onclick="switchTab('batch')">📋 배치 조회</button>
+    </div>
+
+    <div id="panel-single">
+    <div class="side-section-title">🗂️ 상품 조건 입력</div>
+
+    <div class="form-group">
+      <label class="form-label">🏷️ 상품 유형</label>
+      <select id="sel-type">
+        <option value="">-- 선택해주세요 --</option>
+        <option value="신규">🏠 신규 (규제 적용)</option>
+        <option value="후취">✨ 후취담보 (비규제)</option>
+        <option value="연장">🔄 연장 (비규제)</option>
+        <option value="지분">🤝 지분대출 (규제 적용)</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">📍 지역</label>
+      <select id="sel-large" onchange="updateDetail()">
+        <option value="">-- 광역시도 --</option>
+      </select>
+      <select id="sel-detail" style="margin-top:6px">
+        <option value="">-- 시/군/구 (선택) --</option>
+      </select>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="form-group">
+      <label class="form-label">💹 수익률 (%)</label>
+      <input type="number" id="inp-rate" placeholder="예: 9.5" step="0.1">
+    </div>
+
+    <div class="input-row">
+      <div class="form-group">
+        <label class="form-label">📉 유효담보비율 (%)</label>
+        <input type="number" id="inp-ltve" placeholder="예: 45" step="0.1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">📊 담보인정비율 (%)</label>
+        <input type="number" id="inp-ltvr" placeholder="예: 60" step="0.1">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">💰 모집금액 (백만원)</label>
+      <input type="number" id="inp-amt" placeholder="예: 100" step="1">
+      <div class="amt-hint" id="amt-hint">—</div>
+    </div>
+
+    <div class="grade-legend" id="grade-legend" style="display:none">
+      <div class="grade-legend-title">💡 투자 가능 등급 기준</div>
+      <div class="grade-legend-row">🟢 <span id="leg-g1">—</span></div>
+      <div class="grade-legend-row">🟡 <span id="leg-g2">—</span></div>
+      <div class="grade-legend-row">🟠 <span id="leg-g3">—</span></div>
+      <div class="grade-legend-row">⚪ <span id="leg-g0">—</span></div>
+    </div>
+
+    <div class="form-group" id="sort-group">
+      <label class="form-label">🔀 정렬 기준</label>
+      <select id="sort-sel" onchange="renderResults()">
+        <option value="amount">💰 총 투자금액</option>
+        <option value="date">📅 최근 투자일</option>
+        <option value="count">📊 투자건수</option>
+      </select>
+    </div>
+
+    <button class="btn-search" onclick="runSearch()">🔍 투자자 찾기!</button>
+    <button class="btn-reset" onclick="resetAll()">↺ 초기화</button>
+    </div><!-- /panel-single -->
+
+    <div id="panel-batch" style="display:none" class="batch-wrap">
+      <div class="batch-hint">
+        📌 <b>슬래시(/) 형식</b> — 유형/광역시도/시군구/수익률/유효담보/담보인정/모집금액(백만)<br>
+        예) 신규/서울특별시/강남구/9.5/45/60/100<br><br>
+        📌 <b>엑셀 복붙 형식</b> — 순번·대출신청ID·이름·대출구분·<b>종류</b>·<b>물건지</b>·면적·<b>대출금액</b>·<b>금리</b>·기간·시세·시세구분·<b>LTV</b> (탭 구분)<br>
+        예) 엑셀에서 행 선택 후 그대로 붙여넣기<br>
+        • LTV 비어있으면 ⚠️ 경고 표시 후 담보비율 필터 미적용<br>
+        • LTV = 유효담보비율로 처리
+      </div>
+      <textarea class="batch-textarea" id="batch-input" placeholder="엑셀 행을 그대로 붙여넣거나&#10;1. 신규/서울특별시/강남구/9.5/45/60/100 형식으로 입력" spellcheck="false"></textarea>
+      <button class="btn-search" onclick="runBatch()">📋 배치 조회!</button>
+      <button class="btn-reset" onclick="document.getElementById('batch-input').value=''; document.getElementById('batch-output').innerHTML='';">↺ 초기화</button>
+      <div id="batch-output"></div>
+    </div>
+  </aside>
+
+  <main id="main-area">
+    <div class="state-box">
+      <div class="icon">🎮</div>
+      <p>상품 조건을 입력하고<br>투자자를 찾아보세요! 🚀</p>
+    </div>
+  </main>
+</div>
+
+<script>
+const RAW = DATA_JSON_PLACEHOLDER
+const INVESTORS = RAW.investors;
+const REGION_MAP = RAW.region_map;
+
+const selLarge = document.getElementById('sel-large');
+const selDetail = document.getElementById('sel-detail');
+
+Object.keys(REGION_MAP).sort().forEach(r => {
+  const o = document.createElement('option');
+  o.value = r; o.textContent = r;
+  selLarge.appendChild(o);
+});
+
+function updateDetail() {
+  const v = selLarge.value;
+  selDetail.innerHTML = '<option value="">-- 시/군/구 (선택) --</option>';
+  if (!v) return;
+  (REGION_MAP[v] || []).forEach(d => {
+    const o = document.createElement('option');
+    o.value = d; o.textContent = d;
+    selDetail.appendChild(o);
+  });
+}
+
+document.getElementById('inp-amt').addEventListener('input', function() {
+  const v = parseFloat(this.value);
+  const hint = document.getElementById('amt-hint');
+  const legend = document.getElementById('grade-legend');
+  if (isNaN(v) || v <= 0) {
+    hint.textContent = '—';
+    legend.style.display = 'none';
+    return;
+  }
+  const won = v * 1e6;
+  hint.textContent = '총 ' + fmtFull(won) + ' → 40% = ' + fmtFull(won * 0.4);
+  document.getElementById('leg-g1').textContent = '1순위: 최대 단일 ' + fmtFull(won * 0.4) + ' 이상 (40%)';
+  document.getElementById('leg-g2').textContent = '2순위: 최대 단일 ' + fmtFull(won * 0.2) + ' 이상 (20%)';
+  document.getElementById('leg-g3').textContent = '3순위: 최대 단일 ' + fmtFull(won * 0.1) + ' 이상 (10%)';
+  document.getElementById('leg-g0').textContent = '참고: 그 이하';
+  legend.style.display = 'flex';
+});
+
+function fmt(n) {
+  if (n >= 1e8) return (n/1e8).toFixed(1) + '억';
+  if (n >= 1e4) return Math.round(n/1e4) + '만';
+  return n.toLocaleString();
+}
+function fmtFull(n) {
+  if (n >= 1e8) { const b=Math.floor(n/1e8), m=Math.round((n%1e8)/1e4); return m>0 ? b+'억 '+m+'만' : b+'억'; }
+  if (n >= 1e4) return Math.round(n/1e4)+'만';
+  return n.toLocaleString()+'원';
+}
+function initial(name) {
+  return name.replace(/주식회사|유한회사|유한책임회사|\(주\)|㈜/g,'').trim().charAt(0) || '?';
+}
+
+// 투자 등급 계산 (모집금액 없으면 등급 없음)
+function getGrade(maxSingle, amt) {
+  if (!amt || isNaN(amt) || amt <= 0) return null;
+  if (maxSingle >= amt * 0.4) return 1;
+  if (maxSingle >= amt * 0.2) return 2;
+  if (maxSingle >= amt * 0.1) return 3;
+  return 4;
+}
+
+const GRADE_INFO = {
+  1: { cls: 'g1', label: '🟢 1순위 (40%+)' },
+  2: { cls: 'g2', label: '🟡 2순위 (20%+)' },
+  3: { cls: 'g3', label: '🟠 3순위 (10%+)' },
+  4: { cls: 'g0', label: '⚪ 참고' },
+};
+
+let lastResults = [];
+let lastInput = {};
+
+function runSearch() {
+  const type = document.getElementById('sel-type').value;
+  const large = selLarge.value;
+  const detail = selDetail.value;
+  const rate = parseFloat(document.getElementById('inp-rate').value);
+  const ltve = parseFloat(document.getElementById('inp-ltve').value);
+  const ltvr = parseFloat(document.getElementById('inp-ltvr').value);
+  const amtMil = parseFloat(document.getElementById('inp-amt').value);
+  const amt = isNaN(amtMil) ? NaN : amtMil * 1e6;
+
+  if (!type) { alert('상품 유형을 선택해주세요! 🎯'); return; }
+  if (!large) { alert('지역을 선택해주세요! 📍'); return; }
+
+  lastInput = { type, large, detail, rate, ltve, ltvr, amt };
+
+  // 모집금액 필터 제거 — 등급으로만 표시
+  const hasAmt = !isNaN(amt) && amt > 0;
+
+  lastResults = INVESTORS.filter(inv => {
+    if (!inv.types.includes(type)) return false;
+    const rm = inv.regions.some(r => {
+      if (r.large !== large) return false;
+      if (detail && r.detail !== detail) return false;
+      return true;
+    });
+    if (!rm) return false;
+    if (!isNaN(rate) && rate < inv.rate_min) return false;
+    if (!isNaN(ltve) && ltve > inv.ltv_eff_max) return false;
+    if (!isNaN(ltvr) && ltvr > inv.ltv_rec_max) return false;
+    return true;
+  });
+
+  // 모집금액 있을 때 등급 정렬 옵션 동적 추가
+  const sortSel = document.getElementById('sort-sel');
+  const hasGradeOpt = Array.from(sortSel.options).some(o => o.value === 'grade');
+  if (hasAmt && !hasGradeOpt) {
+    const opt = document.createElement('option');
+    opt.value = 'grade'; opt.textContent = '🎯 투자 가능 등급';
+    sortSel.insertBefore(opt, sortSel.firstChild);
+    sortSel.value = 'grade';
+  } else if (!hasAmt && hasGradeOpt) {
+    Array.from(sortSel.options).forEach(o => { if (o.value==='grade') sortSel.removeChild(o); });
+    if (sortSel.value === 'grade') sortSel.value = 'amount';
+  }
+  renderResults();
+}
+
+function sortResults(arr, key, amt) {
+  return [...arr].sort((a, b) => {
+    if (key === 'grade') {
+      const ga = getGrade(a.max_single, amt) ?? 5;
+      const gb = getGrade(b.max_single, amt) ?? 5;
+      if (ga !== gb) return ga - gb;
+      return b.total_amt - a.total_amt;
+    }
+    if (key === 'date') return b.latest_date.localeCompare(a.latest_date);
+    if (key === 'amount') return b.total_amt - a.total_amt;
+    if (key === 'count') return b.total_count - a.total_count;
+    return 0;
+  });
+}
+
+function renderResults() {
+  const sortKey = document.getElementById('sort-sel') ? document.getElementById('sort-sel').value : 'amount';
+  const { type, large, detail } = lastInput;
+  const amtMilNow = parseFloat(document.getElementById('inp-amt').value);
+  const amt = isNaN(amtMilNow) ? NaN : amtMilNow * 1e6;
+  const hasAmt = !isNaN(amt) && amt > 0;
+  const sorted = sortResults(lastResults, sortKey, amt);
+  const isReg = type === '신규' || type === '지분';
+  const ranks = ['🥇','🥈','🥉'];
+
+  let html = '';
+  html += `<div class="results-header">
+    <div class="results-title">✅ 매칭 결과</div>
+    <div class="count-pill">🧑‍💼 ${sorted.length}명</div>
+  </div>`;
+
+  if (isReg) {
+    html += `<div class="warn-banner">⚠️ <span><b>${type} 상품</b>은 규제 적용 구간이에요. 담보비율 필터는 참고용으로만 활용해주세요!</span></div>`;
+  }
+
+  if (sorted.length === 0) {
+    html += `<div class="state-box"><div class="icon">😢</div><p>조건에 맞는 투자자가 없어요.<br>조건을 조금 완화해보세요!</p></div>`;
+    document.getElementById('main-area').innerHTML = html;
+    return;
+  }
+
+  html += '<div class="cards">';
+  sorted.forEach((inv, i) => {
+    const grade = hasAmt ? getGrade(inv.max_single, amt) : null;
+    const gradeInfo = grade !== null ? GRADE_INFO[grade] : null;
+
+    const matchSet = new Set(inv.regions.filter(r => {
+      if (r.large !== large) return false;
+      if (detail && r.detail !== detail) return false;
+      return true;
+    }).map(r => r.large+r.detail));
+
+    const sortedRegions = [...inv.regions].sort((a,b) =>
+      (matchSet.has(a.large+a.detail)?0:1) - (matchSet.has(b.large+b.detail)?0:1)
+    );
+
+    const regionHtml = sortedRegions.slice(0,10).map(r => {
+      const isM = matchSet.has(r.large+r.detail);
+      const label = r.large===r.detail ? r.large
+        : r.large.replace('특별시','').replace('광역시','').replace('특별자치시','').replace('특별자치도','').replace('도','').trim() + ' ' + r.detail;
+      return `<span class="region-tag ${isM?'match':''}">${isM?'📍 ':''}${label}</span>`;
+    }).join('') + (sortedRegions.length>10 ? `<span class="region-tag">+${sortedRegions.length-10}개</span>` : '');
+
+    const typeHtml = inv.types.map(t =>
+      `<span class="type-tag ${t}">${t==='신규'?'🏠':t==='연장'?'🔄':t==='후취'?'✨':'🤝'} ${t}</span>`
+    ).join('');
+
+    const isTop = i === 0;
+    const rankLabel = i < 3 ? ranks[i] : '#'+(i+1);
+
+    // 최대 단일 금액 컬러
+    let singleValClass = '';
+    if (grade === 1) singleValClass = 'green';
+    else if (grade === 2) singleValClass = 'yellow';
+    else if (grade === 3) singleValClass = 'orange';
+    else if (grade === 0) singleValClass = 'gray';
+
+    const dimCard = grade === 4;
+
+    html += `<div class="card ${isTop&&!dimCard?'top':''} ${dimCard?'grade-dim':''}">
+      ${i<3 ? `<div class="rank-badge ${i===1?'silver':i===2?'bronze':''}">${rankLabel}${i===0&&!dimCard?' TOP':'  '}</div>` : ''}
+      ${gradeInfo ? `<div class="grade-badge ${gradeInfo.cls}">${gradeInfo.label}</div>` : ''}
+      <div style="height:${i<3||gradeInfo?'8px':'4px'}"></div>
+      <div class="card-top">
+        <div class="avatar">${initial(inv.name)}</div>
+        <div style="flex:1">
+          <div class="inv-name">${inv.name}</div>
+          <div class="type-tags">${typeHtml}</div>
+        </div>
+        <div class="latest-date">🕐 최근 투자<br>${inv.latest_date}</div>
+      </div>
+      <div class="card-stats">
+        <div class="stat"><span class="stat-val">💰 ${fmt(inv.total_amt)}</span><span class="stat-label">총 투자금액</span></div>
+        <div class="stat"><span class="stat-val">📋 ${inv.total_count}건</span><span class="stat-label">총 건수</span></div>
+        <div class="stat"><span class="stat-val ${singleValClass}">🎯 ${fmtFull(inv.max_single)}</span><span class="stat-label">최대 단일 투자</span></div>
+      </div>
+      <div class="card-meta">
+        <div class="meta-item"><div class="meta-label">💹 수익률 범위</div><div class="meta-val">${inv.rate_min}% – ${inv.rate_max}%</div></div>
+        <div class="meta-item"><div class="meta-label">📉 유효담보비율 최대</div><div class="meta-val">${inv.ltv_eff_max}%</div></div>
+        <div class="meta-item"><div class="meta-label">📊 담보인정비율 최대</div><div class="meta-val">${inv.ltv_rec_max}%</div></div>
+        <div class="meta-item"><div class="meta-label">🗺️ 투자 지역 수</div><div class="meta-val">${inv.regions.length}개 지역</div></div>
+      </div>
+      <div class="region-section-label">🗺️ 투자 지역 이력</div>
+      <div class="regions">${regionHtml}</div>
+    </div>`;
+  });
+  html += '</div>';
+  document.getElementById('main-area').innerHTML = html;
+}
+
+function resetAll() {
+  document.getElementById('sel-type').value = '';
+  selLarge.value = '';
+  selDetail.innerHTML = '<option value="">-- 시/군/구 (선택) --</option>';
+  ['inp-rate','inp-ltve','inp-ltvr','inp-amt'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('amt-hint').textContent = '—';
+  document.getElementById('grade-legend').style.display = 'none';
+  const sortSel2 = document.getElementById('sort-sel');
+  Array.from(sortSel2.options).forEach(o => { if (o.value==='grade') sortSel2.removeChild(o); });
+  sortSel2.value = 'amount';
+  lastResults = []; lastInput = {};
+  document.getElementById('main-area').innerHTML = `<div class="state-box"><div class="icon">🎮</div><p>상품 조건을 입력하고<br>투자자를 찾아보세요! 🚀</p></div>`;
+}
+
+// ── 엑셀 업로드 ──────────────────────────────────────────
+function handleUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  showToast('⏳ 파일 읽는 중...');
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'binary', cellDates: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+      const newData = buildInvestorData(rows);
+      // 전역 데이터 업데이트
+      INVESTORS.length = 0;
+      newData.investors.forEach(i => INVESTORS.push(i));
+      Object.keys(REGION_MAP).forEach(k => delete REGION_MAP[k]);
+      Object.assign(REGION_MAP, newData.region_map);
+
+      // 지역 드롭다운 재구성
+      selLarge.innerHTML = '<option value="">-- 광역시도 --</option>';
+      Object.keys(REGION_MAP).sort().forEach(r => {
+        const o = document.createElement('option');
+        o.value = r; o.textContent = r;
+        selLarge.appendChild(o);
+      });
+      selDetail.innerHTML = '<option value="">-- 시/군/구 (선택) --</option>';
+
+      // 날짜 범위 & 투자자 수 배지 업데이트
+      const dates = rows.map(r => r['투자일']).filter(Boolean).map(d => new Date(d)).filter(d => !isNaN(d));
+      if (dates.length) {
+        const minD = new Date(Math.min(...dates));
+        const maxD = new Date(Math.max(...dates));
+        const fmt2 = d => `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}`;
+        document.getElementById('data-badge').textContent = `📅 ${fmt2(minD)}–${fmt2(maxD)} · ${newData.investors.length}명`;
+      }
+
+      showToast(`✅ ${file.name} 업로드 완료 · 투자자 ${newData.investors.length}명`);
+      // 입력 초기화
+      document.getElementById('upload-input').value = '';
+    } catch(err) {
+      showToast('❌ 파일 처리 오류: ' + err.message);
+      console.error(err);
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
+function buildInvestorData(rows) {
+  function classifyType(row) {
+    const name = String(row['상품명'] || '');
+    if (name.includes('(연장)')) return '연장';
+    if (row['담보구분'] === '후취담보') return '후취';
+    if (row['지분대출'] === '지분대출') return '지분';
+    return '신규';
+  }
+  function extractRegion(addr) {
+    const parts = String(addr || '').trim().split(' ');
+    if (!parts.length) return { large: '기타', detail: '기타' };
+    const large = parts[0];
+    if (large === '세종특별자치시') return { large, detail: large };
+    let detail = '';
+    for (let i = 1; i < parts.length; i++) {
+      if (parts[i].endsWith('구') || parts[i].endsWith('시') || parts[i].endsWith('군')) {
+        detail = parts[i]; break;
+      }
+    }
+    return { large, detail: detail || large };
+  }
+
+  const investorMap = {};
+  rows.forEach(row => {
+    const inv = String(row['투자자'] || '').trim();
+    if (!inv) return;
+    const type = classifyType(row);
+    const { large, detail } = extractRegion(row['주소']);
+    const rate = parseFloat(row['금리']) || 0;
+    const ltve = parseFloat(row['유효담보비율']) || 0;
+    const ltvc = parseFloat(row['담보인정비율']) || 0;
+    const amt  = parseFloat(String(row['투자금액']).replace(/,/g,'')) || 0;
+    const dateRaw = row['투자일'];
+    const dateStr = dateRaw ? (dateRaw instanceof Date ? dateRaw.toISOString().slice(0,10) : String(dateRaw).slice(0,10)) : '';
+    const prodName = String(row['상품명'] || '');
+
+    if (!investorMap[inv]) {
+      investorMap[inv] = {
+        name: inv, types: [], regions: [],
+        rate_min: Infinity, rate_max: -Infinity,
+        ltv_eff_max: -Infinity, ltv_rec_max: -Infinity,
+        max_single: 0, total_amt: 0,
+        products: new Set(), latest_date: ''
+      };
+    }
+    const d = investorMap[inv];
+    if (!d.types.includes(type)) d.types.push(type);
+    if (!d.regions.some(r => r.large===large && r.detail===detail)) d.regions.push({ large, detail });
+    if (rate > 0) { d.rate_min = Math.min(d.rate_min, rate); d.rate_max = Math.max(d.rate_max, rate); }
+    if (ltve > 0) d.ltv_eff_max = Math.max(d.ltv_eff_max, ltve);
+    if (ltvc > 0) d.ltv_rec_max = Math.max(d.ltv_rec_max, ltvc);
+    if (amt > d.max_single) d.max_single = amt;
+    d.total_amt += amt;
+    d.products.add(prodName);
+    if (dateStr > d.latest_date) d.latest_date = dateStr;
+  });
+
+  const investors = Object.values(investorMap).map(d => ({
+    name: d.name, types: d.types, regions: d.regions,
+    rate_min: d.rate_min === Infinity ? 0 : d.rate_min,
+    rate_max: d.rate_max === -Infinity ? 0 : d.rate_max,
+    ltv_eff_max: d.ltv_eff_max === -Infinity ? 0 : d.ltv_eff_max,
+    ltv_rec_max: d.ltv_rec_max === -Infinity ? 0 : d.ltv_rec_max,
+    max_single: d.max_single, total_amt: d.total_amt,
+    total_count: d.products.size, latest_date: d.latest_date
+  }));
+
+  const region_map = {};
+  investors.forEach(inv => inv.regions.forEach(r => {
+    if (!region_map[r.large]) region_map[r.large] = [];
+    if (!region_map[r.large].includes(r.detail)) region_map[r.large].push(r.detail);
+  }));
+  Object.keys(region_map).forEach(k => region_map[k].sort());
+
+  return { investors, region_map };
+}
+
+function showToast(msg) {
+  const t = document.getElementById('upload-toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── 탭 전환 ────────────────────────────────────────────
+function switchTab(tab) {
+  document.getElementById('panel-single').style.display = tab === 'single' ? '' : 'none';
+  document.getElementById('panel-batch').style.display  = tab === 'batch'  ? '' : 'none';
+  document.getElementById('tab-single').classList.toggle('active', tab === 'single');
+  document.getElementById('tab-batch').classList.toggle('active',  tab === 'batch');
+  if (tab === 'batch') {
+    document.getElementById('main-area').innerHTML = `<div class="state-box"><div class="icon">📋</div><p>배치 조회 결과가<br>여기에 표시됩니다!</p></div>`;
+  }
+}
+
+// ── 배치 파싱 & 조회 ───────────────────────────────────
+const TYPE_MAP = { '신규':'신규','일반':'신규','후취':'후취','연장':'연장','지분':'지분' };
+
+function parseBatchLine(line) {
+  // 번호 제거: "1. " 또는 "1) "
+  const cleaned = line.replace(/^\s*\d+[\.\.)]\s*/, '').trim();
+  if (!cleaned) return null;
+
+  // 탭 구분 엑셀 형식 감지 (탭이 3개 이상이면 엑셀 복붙으로 판단)
+  const tabs = (cleaned.match(/\t/g) || []).length;
+  if (tabs >= 3) {
+    return parseExcelLine(cleaned);
+  }
+
+  // 슬래시 형식
+  const parts = cleaned.split('/').map(p => p.trim());
+  if (parts.length < 4) return { error: '컬럼 부족 (최소 4개 필요)' };
+  const [typeRaw, large, detail, rateRaw, ltveRaw, ltvrRaw, amtRaw] = parts;
+  const type = TYPE_MAP[typeRaw];
+  if (!type) return { error: `유형 인식 불가: "${typeRaw}"` };
+  if (!large) return { error: '광역시도 없음' };
+  const rate  = parseFloat(rateRaw)  || NaN;
+  const ltve  = parseFloat(ltveRaw)  || NaN;
+  const ltvr  = parseFloat(ltvrRaw)  || NaN;
+  const amt   = amtRaw ? parseFloat(amtRaw.replace(/,/g,'')) * 1e6 : NaN;
+  return { type, large, detail: detail||'', rate, ltve, ltvr, amt };
+}
+
+function parseExcelLine(line) {
+  // 컬럼: 순번(0) / 대출신청ID(1) / 이름(2) / 대출구분(3) / 종류(4) /
+  //       물건지(5) / 면적(6) / 대출금액(7) / 금리(8) / 투자기간(9) /
+  //       시세(10) / 시세구분(11) / LTV(12)
+  const cols = line.split('\t').map(c => c.trim());
+  if (cols.length < 9) return { error: '엑셀 컬럼 부족 (최소 9개 필요)' };
+
+  // 종류 (4번 컬럼)
+  const typeRaw = cols[4] || '';
+  const type = TYPE_MAP[typeRaw.replace(/\s/g,'')];
+  if (!type) return { error: `종류 인식 불가: "${typeRaw}"` };
+
+  // 물건지에서 지역 파싱 (5번 컬럼)
+  const addr = cols[5] || '';
+  const { large, detail } = parseAddr(addr);
+  if (!large) return { error: `주소 파싱 실패: "${addr}"` };
+
+  // 대출금액 (7번, 원 단위)
+  const amtRaw = cols[7] || '';
+  const amt = parseFloat(amtRaw.replace(/[,\s]/g,'')) || NaN;
+
+  // 금리 (8번, % 포함 가능)
+  const rateRaw = cols[8] || '';
+  const rate = parseFloat(rateRaw.replace('%','')) || NaN;
+
+  // LTV (12번, % 포함 가능)
+  const ltvRaw = cols[12] || '';
+  const ltve = ltvRaw ? parseFloat(ltvRaw.replace('%','')) || NaN : NaN;
+  const ltvMissing = !ltvRaw || ltvRaw === '';
+
+  return { type, large, detail, rate, ltve, ltvr: NaN, amt, ltvMissing };
+}
+
+function parseAddr(addr) {
+  const parts = addr.split(' ');
+  if (!parts.length) return { large: '', detail: '' };
+  const large = parts[0];
+  let detail = '';
+  for (let i = 1; i < parts.length; i++) {
+    const p = parts[i];
+    if (p.endsWith('구') || p.endsWith('시') || p.endsWith('군')) {
+      detail = p; break;
+    }
+  }
+  return { large, detail };
+}
+
+function filterInvestors(cond) {
+  const { type, large, detail, rate, ltve, ltvr } = cond;
+  return INVESTORS.filter(inv => {
+    if (!inv.types.includes(type)) return false;
+    const rm = inv.regions.some(r => {
+      if (r.large !== large) return false;
+      if (detail && r.detail !== detail) return false;
+      return true;
+    });
+    if (!rm) return false;
+    if (!isNaN(rate) && rate < inv.rate_min) return false;
+    if (!isNaN(ltve) && ltve > inv.ltv_eff_max) return false;
+    if (!isNaN(ltvr) && ltvr > inv.ltv_rec_max) return false;
+    return true;
+  });
+}
+
+function runBatch() {
+  const raw = document.getElementById('batch-input').value;
+  const lines = raw.split('\n').filter(l => l.trim());
+  if (!lines.length) { alert('내용을 입력해주세요!'); return; }
+
+  let html = '<div class="cards">';
+  let lineNum = 0;
+
+  lines.forEach(line => {
+    if (!line.trim()) return;
+    lineNum++;
+    const cond = parseBatchLine(line);
+
+    if (!cond) return;
+    if (cond.error) {
+      html += `<div class="batch-result-item">
+        <div class="batch-result-num">${lineNum}번</div>
+        <div class="batch-error">⚠️ 파싱 오류: ${cond.error}</div>
+      </div>`;
+      return;
+    }
+
+    const results = filterInvestors(cond);
+    // 등급 기준 정렬
+    const sorted = [...results].sort((a,b) => {
+      const ga = getGrade(a.max_single, cond.amt) ?? 5;
+      const gb = getGrade(b.max_single, cond.amt) ?? 5;
+      if (ga !== gb) return ga - gb;
+      return b.total_amt - a.total_amt;
+    });
+
+    const ltvWarn = cond.ltvMissing ? '<span style="color:#ef4444;font-size:10px;font-weight:800;margin-left:6px;">⚠️ LTV 없음 · 담보비율 필터 미적용</span>' : '';
+    const condLabel = [
+      cond.type,
+      cond.large.replace('특별시','').replace('광역시','').replace('특별자치시','').replace('특별자치도','').replace('도','').trim(),
+      cond.detail||'전체',
+      !isNaN(cond.rate) ? cond.rate+'%' : '',
+      !isNaN(cond.ltve) ? '유효담보'+cond.ltve+'%' : '',
+      !isNaN(cond.amt)  ? fmt(cond.amt) : '',
+    ].filter(Boolean).join(' · ');
+
+    const invTagsHtml = sorted.length === 0
+      ? '<span class="batch-none">😢 조건 맞는 투자자 없음</span>'
+      : sorted.map(inv => {
+          const g = getGrade(inv.max_single, cond.amt);
+          const cls = g===1?'g1':g===2?'g2':g===3?'g3':g===4?'g4':'';
+          const gradeEmoji = g===1?'🟢':g===2?'🟡':g===3?'🟠':g===4?'⚪':'';
+          const shortName = inv.name.replace('주식회사','').replace('(주)','').replace('㈜','').trim();
+          return `<span class="batch-inv-tag ${cls}">${gradeEmoji} ${shortName}</span>`;
+        }).join('');
+
+    html += `<div class="batch-result-item">
+      <div class="batch-result-num">📌 ${lineNum}번 조회</div>
+      <div class="batch-result-cond">${condLabel}${ltvWarn}</div>
+      <div class="batch-result-names">${invTagsHtml}</div>
+    </div>`;
+  });
+
+  html += '</div>';
+  document.getElementById('main-area').innerHTML = html;
+  document.getElementById('batch-output').innerHTML = '';
+}
+</script>
+<div class="upload-toast" id="upload-toast"></div>
+</body>
+</html>
