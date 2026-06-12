@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>에잇퍼센트 투자자 매칭</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --purple:#a855f7;--purple-dark:#7c3aed;--purple-deep:#5b21b6;
+  --indigo:#818cf8;--pink:#f0abfc;
+  --grad:linear-gradient(135deg,#a855f7,#818cf8);
+  --bg:#f5f0ff;--surface:#fdf6ff;--surface2:#fff;
+  --border:#ede9fe;--border2:#ddd6fe;
+  --text:#3b0764;--text2:#7c3aed;--text3:#a78bfa;--text4:#c4b5fd;
+  --green:#059669;--yellow:#a16207;--orange:#c2410c;--gray:#94a3b8;
+  --radius:16px;--radius-sm:10px;
+}
+body{font-family:'Nunito',-apple-system,sans-serif;background:var(--bg);min-height:100vh;font-size:14px;overflow-x:hidden}
+
+/* ── 파티클 배경 ── */
+.particles{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;overflow:hidden}
+.particle{position:absolute;border-radius:50%;opacity:0;animation:float linear infinite}
+@keyframes float{0%{transform:translateY(100vh) scale(0);opacity:0}10%{opacity:.6}90%{opacity:.3}100%{transform:translateY(-20vh) scale(1.5);opacity:0}}
+
+/* ── 헤더 ── */
+header{background:var(--grad);padding:14px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;box-shadow:0 4px 20px rgba(168,85,247,.3)}
+.logo-img{width:40px;height:40px;border-radius:12px;object-fit:cover;border:2px solid rgba(255,255,255,.4)}
+header h1{font-size:17px;font-weight:900;color:#fff;letter-spacing:-.3px}
+header .sub{font-size:12px;color:rgba(255,255,255,.8)}
+.header-badge{margin-left:auto;background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);border-radius:20px;font-size:11px;color:#fff;font-weight:700;padding:4px 12px}
+
+/* ── 탭 ── */
+.tab-bar{display:flex;background:var(--surface);border-bottom:2px solid var(--border)}
+.tab-btn{flex:1;padding:12px;font-size:13px;font-weight:800;font-family:'Nunito',sans-serif;border:none;cursor:pointer;background:transparent;color:var(--text3);transition:all .2s;position:relative}
+.tab-btn.active{color:var(--purple-dark);background:var(--surface2)}
+.tab-btn.active::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:2px;background:var(--grad)}
+
+/* ── 단일 조회 레이아웃 ── */
+.layout{display:grid;grid-template-columns:320px 1fr;min-height:calc(100vh - 115px);position:relative}
+aside{background:var(--surface);border-right:2px dashed var(--border);padding:20px;display:flex;flex-direction:column;gap:13px;overflow-y:auto;height:calc(100vh - 115px)}
+.side-title{font-size:10px;font-weight:900;color:var(--text3);text-transform:uppercase;letter-spacing:.1em}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-label{font-size:12px;font-weight:700;color:var(--text2)}
+select,input[type="number"]{background:var(--surface2);border:2px solid var(--border2);border-radius:var(--radius-sm);color:var(--text2);font-size:12px;font-weight:600;font-family:'Nunito',sans-serif;padding:8px 12px;width:100%;outline:none;transition:border-color .15s;-webkit-appearance:none}
+select:focus,input[type="number"]:focus{border-color:var(--purple)}
+.input-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.amt-hint{font-size:10px;font-weight:600;color:var(--text3);text-align:right;margin-top:2px;min-height:14px}
+.divider{height:1px;background:var(--border)}
+.grade-legend{background:var(--surface2);border:2px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;display:flex;flex-direction:column;gap:5px}
+.grade-legend-title{font-size:10px;font-weight:900;color:var(--text3);text-transform:uppercase;margin-bottom:2px}
+.grade-legend-row{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--text2)}
+.sort-group{display:flex;flex-direction:column;gap:5px}
+.btn-search{background:var(--grad);border:none;border-radius:var(--radius-sm);color:#fff;font-size:14px;font-weight:900;font-family:'Nunito',sans-serif;padding:12px;width:100%;cursor:pointer;transition:opacity .15s,transform .1s;letter-spacing:.01em}
+.btn-search:hover{opacity:.88}
+.btn-search:active{transform:scale(.98)}
+.btn-reset{background:var(--surface2);border:2px solid var(--border);border-radius:var(--radius-sm);color:var(--text3);font-size:12px;font-weight:700;font-family:'Nunito',sans-serif;padding:8px;width:100%;cursor:pointer;transition:border-color .15s}
+.btn-reset:hover{border-color:var(--purple)}
+
+/* ── 메인 영역 ── */
+main{padding:20px 24px;overflow-y:auto}
+
+/* 결과 헤더 */
+.results-header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.results-title{font-size:15px;font-weight:900;color:var(--purple-dark);flex:1}
+.count-pill{background:#ede9fe;border:1.5px solid var(--text4);border-radius:20px;font-size:13px;font-weight:900;color:var(--purple-dark);padding:3px 14px}
+
+/* 경고 배너 */
+.warn-banner{background:#fef9c3;border:1.5px solid #fde68a;border-radius:var(--radius-sm);padding:10px 14px;font-size:11px;font-weight:700;color:#a16207;display:flex;gap:8px;align-items:flex-start;margin-bottom:14px}
+
+/* 빈 상태 */
+.state-box{text-align:center;padding:80px 24px}
+.state-box .icon{font-size:50px;margin-bottom:14px;animation:bounce 2s infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.state-box p{font-size:15px;font-weight:700;line-height:2;color:var(--text3)}
+
+/* 카드 */
+.cards{display:flex;flex-direction:column;gap:12px}
+.card{background:var(--surface2);border:2px solid var(--border);border-radius:var(--radius);padding:16px 18px;position:relative;transition:border-color .2s,transform .2s,box-shadow .2s;opacity:0;transform:translateX(-30px)}
+.card:hover{border-color:var(--text4);transform:translateX(4px);box-shadow:0 4px 20px rgba(168,85,247,.15)}
+.card.show{animation:slideIn .4s ease forwards}
+@keyframes slideIn{from{opacity:0;transform:translateX(-30px)}to{opacity:1;transform:translateX(0)}}
+.card.top{border-color:#c084fc;background:linear-gradient(135deg,#fdf4ff,#ede9fe)}
+.card.grade-dim{opacity:.65}
+
+.rank-badge{position:absolute;top:-10px;left:14px;background:var(--purple);color:#fff;font-size:10px;font-weight:900;padding:2px 12px;border-radius:20px}
+.rank-badge.silver{background:var(--indigo)}
+.rank-badge.bronze{background:#fb923c}
+.grade-badge{position:absolute;top:-10px;right:14px;font-size:10px;font-weight:900;padding:2px 10px;border-radius:20px}
+.grade-badge.g1{background:#dcfce7;color:#15803d;border:1.5px solid #86efac}
+.grade-badge.g2{background:#fef9c3;color:#a16207;border:1.5px solid #fde68a}
+.grade-badge.g3{background:#ffedd5;color:#c2410c;border:1.5px solid #fdba74}
+.grade-badge.g4{background:#f1f5f9;color:#94a3b8;border:1.5px solid #e2e8f0}
+
+.card-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+.avatar{width:40px;height:40px;border-radius:12px;background:var(--grad);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:900;flex-shrink:0;animation:pulse 3s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(168,85,247,.4)}50%{box-shadow:0 0 0 6px rgba(168,85,247,0)}}
+.inv-name{font-size:14px;font-weight:900;color:var(--text);line-height:1.3;flex:1}
+.latest-date{font-size:10px;color:var(--text3);font-weight:600;text-align:right;white-space:nowrap}
+
+.type-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.type-tag{border-radius:6px;padding:2px 8px;font-size:10px;font-weight:900}
+.type-tag.신규{background:#ede9fe;color:var(--purple-dark)}
+.type-tag.연장{background:#dcfce7;color:#15803d}
+.type-tag.후취{background:#fef9c3;color:#a16207}
+.type-tag.지분{background:#fce7f3;color:#be185d}
+
+.card-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.stat{background:#f5f3ff;border-radius:var(--radius-sm);padding:9px 8px;text-align:center}
+.stat-val{font-size:15px;font-weight:900;color:var(--purple-dark);display:block;margin-bottom:2px}
+.stat-val.green{color:var(--green)}
+.stat-val.yellow{color:var(--yellow)}
+.stat-val.orange{color:var(--orange)}
+.stat-val.gray{color:var(--gray)}
+.stat-label{font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+
+.card-meta{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
+.meta-item{background:#f5f3ff;border-radius:8px;padding:7px 10px}
+.meta-label{font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;margin-bottom:2px}
+.meta-val{font-size:12px;font-weight:700;color:var(--purple-deep)}
+
+.region-label{font-size:9px;font-weight:900;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.regions{display:flex;flex-wrap:wrap;gap:4px}
+.region-tag{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:600;color:#64748b}
+.region-tag.match{background:#ede9fe;border-color:var(--text4);color:var(--purple-dark)}
+
+/* ── 배치 조회 ── */
+#panel-batch{padding:20px 24px;display:none;min-height:400px}
+.batch-top{display:flex;gap:12px;margin-bottom:16px}
+.batch-textarea{background:var(--surface2);border:2px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:12px;font-weight:600;font-family:'Nunito',monospace;padding:12px;width:100%;resize:vertical;min-height:100px;outline:none;line-height:1.8;flex:1}
+.batch-textarea:focus{border-color:var(--purple)}
+.batch-sidebar{display:flex;flex-direction:column;gap:8px;width:200px;flex-shrink:0}
+.batch-hint{background:#f5f3ff;border-radius:var(--radius-sm);padding:10px 12px;font-size:10px;color:var(--purple-dark);font-weight:600;line-height:1.9}
+
+/* 배치 결과 그리드 */
+.batch-results-header{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.batch-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.batch-card{background:var(--surface2);border:2px solid var(--border);border-radius:var(--radius);padding:14px 16px;opacity:0;transform:translateY(20px) scale(.96);transition:opacity .35s ease,transform .35s ease}
+.batch-card.show{opacity:1;transform:translateY(0) scale(1)}
+.batch-card:hover{border-color:var(--text4);box-shadow:0 4px 20px rgba(168,85,247,.12)}
+.batch-num{font-size:10px;font-weight:900;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.batch-cond{font-size:11px;font-weight:700;color:var(--purple-deep);background:#f5f3ff;border-radius:6px;padding:4px 8px;display:inline-block;margin-bottom:10px}
+.batch-inv-list{display:flex;flex-wrap:wrap;gap:5px}
+.batch-inv-tag{border-radius:8px;padding:4px 10px;font-size:11px;font-weight:800;cursor:default;transition:transform .15s}
+.batch-inv-tag:hover{transform:scale(1.05)}
+.batch-inv-tag.g1{background:#dcfce7;border:1.5px solid #86efac;color:#15803d}
+.batch-inv-tag.g2{background:#fef9c3;border:1.5px solid #fde68a;color:#a16207}
+.batch-inv-tag.g3{background:#ffedd5;border:1.5px solid #fdba74;color:#c2410c}
+.batch-inv-tag.g4{background:#f1f5f9;border:1.5px solid #e2e8f0;color:#94a3b8}
+.batch-none{color:var(--text3);font-size:11px;font-weight:700}
+.batch-error-tag{color:#ef4444;font-size:11px;font-weight:700}
+
+/* 카운터 */
+.counter-wrap{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.counter-box{background:var(--surface2);border:2px solid var(--border);border-radius:var(--radius-sm);padding:10px;text-align:center}
+.counter-num{font-size:20px;font-weight:900;color:var(--purple-dark);display:block}
+.counter-lbl{font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- 파티클 배경 -->
+<div class="particles" id="particles"></div>
+
+<header>
+  <img class="logo-img" src="data:image/png;base64,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" alt="에잇퍼센트">
+  <h1>투자자 매칭 🎯✨</h1>
+  <span class="sub">법인 투자자 조회</span>
+  <div class="header-badge" id="data-badge">📅 2026.04–06 · 70명</div>
+</header>
+
+<div class="tab-bar">
+  <button class="tab-btn active" id="tab-single" onclick="switchTab('single')">🔍 단일 조회</button>
+  <button class="tab-btn" id="tab-batch" onclick="switchTab('batch')">📋 배치 조회</button>
+</div>
+
+<!-- 단일 조회 -->
+<div id="panel-single">
+<div class="layout">
+  <aside>
+    <div class="side-title">🗂️ 상품 조건 입력</div>
+    <div class="form-group">
+      <label class="form-label">🏷️ 상품 유형</label>
+      <select id="sel-type">
+        <option value="">-- 선택해주세요 --</option>
+        <option value="신규">🏠 신규 (규제 적용)</option>
+        <option value="후취">✨ 후취담보 (비규제)</option>
+        <option value="연장">🔄 연장 (비규제)</option>
+        <option value="지분">🤝 지분대출 (규제 적용)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">📍 지역</label>
+      <select id="sel-large" onchange="updateDetail()">
+        <option value="">-- 광역시도 --</option>
+      </select>
+      <select id="sel-detail" style="margin-top:6px">
+        <option value="">-- 시/군/구 (선택) --</option>
+      </select>
+    </div>
+    <div class="divider"></div>
+    <div class="form-group">
+      <label class="form-label">💹 수익률 (%)</label>
+      <input type="number" id="inp-rate" placeholder="예: 9.5" step="0.1">
+    </div>
+    <div class="input-row">
+      <div class="form-group">
+        <label class="form-label">📉 유효담보비율 (%)</label>
+        <input type="number" id="inp-ltve" placeholder="예: 45" step="0.1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">📊 담보인정비율 (%)</label>
+        <input type="number" id="inp-ltvr" placeholder="예: 60" step="0.1">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">💰 모집금액 (백만원)</label>
+      <input type="number" id="inp-amt" placeholder="예: 100" step="1">
+      <div class="amt-hint" id="amt-hint">—</div>
+    </div>
+    <div class="grade-legend" id="grade-legend" style="display:none">
+      <div class="grade-legend-title">💡 투자 가능 등급 기준</div>
+      <div class="grade-legend-row">🟢 <span id="leg-g1">—</span></div>
+      <div class="grade-legend-row">🟡 <span id="leg-g2">—</span></div>
+      <div class="grade-legend-row">🟠 <span id="leg-g3">—</span></div>
+      <div class="grade-legend-row">⚪ <span id="leg-g0">—</span></div>
+    </div>
+    <div class="sort-group">
+      <label class="form-label">🔀 정렬 기준</label>
+      <select id="sort-sel" onchange="renderResults()">
+        <option value="amount">💰 총 투자금액</option>
+        <option value="date">📅 최근 투자일</option>
+        <option value="count">📊 투자건수</option>
+      </select>
+    </div>
+    <button class="btn-search" onclick="runSearch()">🔍 투자자 찾기! 🚀</button>
+    <button class="btn-reset" onclick="resetAll()">↺ 초기화</button>
+  </aside>
+  <main id="main-area">
+    <div class="state-box">
+      <div class="icon">🎮</div>
+      <p>상품 조건을 입력하고<br>투자자를 찾아보세요! 🚀✨</p>
+    </div>
+  </main>
+</div>
+</div>
+
+<!-- 배치 조회 -->
+<div id="panel-batch" style="display:none">
+  <div class="batch-top">
+    <textarea class="batch-textarea" id="batch-input" placeholder="📌 슬래시 형식: 신규/서울특별시/강남구/9.5/45/60/100&#10;📌 엑셀 복붙: 행 선택 후 그대로 붙여넣기 (탭 구분 자동 인식)&#10;&#10;여러 줄 입력 가능해요! 😊" spellcheck="false"></textarea>
+    <div class="batch-sidebar">
+      <div class="batch-hint">
+        📌 <b>슬래시 형식</b><br>
+        유형/광역시도/시군구/<br>수익률/유효담보/<br>담보인정/모집금액(백만)<br><br>
+        📌 <b>엑셀 복붙</b><br>
+        순번·ID·이름·대출구분·<b>종류</b>·<b>물건지</b>·면적·<b>대출금액</b>·<b>금리</b>·기간·시세·시세구분·<b>LTV</b>
+      </div>
+      <button class="btn-search" onclick="runBatch()">📋 배치 조회! 🎯</button>
+      <button class="btn-reset" onclick="document.getElementById('batch-input').value='';document.getElementById('batch-result-area').innerHTML=''">↺ 초기화</button>
+    </div>
+  </div>
+  <div id="batch-result-area"></div>
+</div>
+
+<script>
+const RAW = {"investors": [{"name": "(주) 삼한주류상사", "types": ["연장", "신규", "후취"], "regions": [{"large": "경기도", "detail": "과천시"}, {"large": "경기도", "detail": "수원시"}, {"large": "인천광역시", "detail": "남동구"}, {"large": "서울특별시", "detail": "서초구"}, {"large": "경기도", "detail": "군포시"}, {"large": "경기도", "detail": "고양시"}, {"large": "서울특별시", "detail": "동대문구"}], "rate_min": 9.3, "rate_max": 12.9, "ltv_eff_max": 67.48, "ltv_rec_max": 89.21, "max_single": 20000000, "total_amt": 59000000, "total_count": 8, "latest_date": "2026-05-28"}, {"name": "(주) 선모운수", "types": ["후취", "신규", "연장"], "regions": [{"large": "서울특별시", "detail": "강동구"}, {"large": "서울특별시", "detail": "금천구"}, {"large": "서울특별시", "detail": "강서구"}, {"large": "경기도", "detail": "남양주시"}, {"large": "경기도", "detail": "하남시"}, {"large": "서울특별시", "detail": "서초구"}, {"large": "부산광역시", "detail": "남구"}, {"large": "경기도", "detail": "김포시"}, {"large": "경기도", "detail": "화성시"}, {"large": "인천광역시", "detail": "계양구"}, {"large": "인천광역시", "detail": "서구"}, {"large": "경기도", "detail": "용인시"}], "rate_min": 8.7, "rate_max": 12.9, "ltv_eff_max": 69.12, "ltv_rec_max": 88.07, "max_single": 490000, "total_amt": 1600000, "total_count": 14, "latest_date": "2026-06-01"}, {"name": "(주)동원대부금융", "types": ["연장", "신규", "지분"], "regions": [{"large": "경기도", "detail": "양주시"}, {"large": "경기도", "detail": "평택시"}, {"large": "경기도", "detail": "김포시"}, {"large": "부산광역시", "detail": "부산진구"}, {"large": "경기도", "detail": "파주시"}, {"large": "부산광역시", "detail": "동래구"}, {"large": "서울특별시", "detail": "강서구"}, {"large": "경기도", "detail": "수원시"}, {"large": "인천광역시", "detail": "연수구"}, {"large": "경기도", "detail": "용인시"}, {"large": "부산광역시", "detail": "기장군"}, {"large": "인천광역시", "detail": "서구"}, {"large": "부산광역시", "detail": "강서구"}, {"large": "경기도", "detail": "남양주시"}, {"large": "경기도", "detail": "안양시"}, {"large": "대전광역시", "detail": "동구"}, {"large": "경상북도", "detail": "포항시"}, {"large": "광주광역시", "detail": "광산구"}, {"large": "충청남도", "detail": "천안시"}, {"large": "경기도", "detail": "화성시"}, {"large": "인천광역시", "detail": "계양구"}, {"large": "경기도", "detail": "고양시"}, {"large": "광주광역시", "detail": "서구"}, {"large": "경기도", "detail": "광명시"}], "rate_min": 10.5, "rate_max": 12.9, "ltv_eff_max": 67.97, "ltv_rec_max": 93.68, "max_single": 36000000, "total_amt": 285585000, "total_count": 31, "latest_date": "2026-06-04"}, {"name": "(주)매드스컹크", "types": ["신규", "연장"], "regions": [{"large": "서울특별시", "detail": "동작구"}, {"large": "경기도", "detail": "성남시"}, {"large": "서울특별시", "detail": "송파구"}, {"large": "서울특별시", "detail": "마포구"}, {"large": "서울특별시", "detail": "강남구"}], "rate_min": 7.7, "rate_max": 9.3, "ltv_eff_max": 47.78, "ltv_rec_max": 60.0, "max_single": 120000000, "total_amt": 206410000, "total_count": 6, "latest_date": "2026-05-28"}, {"name": "(주)세한이노테크", "types": ["후취", "신규", "연장"], "regions": [{"large": "인천광역시", "detail": "미추홀구"}, {"large": "경기도", "detail": "성남시"}, {"large": "서울특별시", "detail": "노원구"}, {"large": "서울특별시", "detail": "성북구"}, {"large": "서울특별시", "detail": "강남구"}], "rate_min": 8.8, "rate_max": 10.6, "ltv_eff_max": 56.0, "ltv_rec_max": 67.59, "max_single": 77280000, "total_amt": 174000000, "total_count": 5, "latest_date": "2026-05-19"}, {"name": "(주)안신", "types": ["연장", "신규", "후취"], "regions": [{"large": "경기도", "detail": "과천시"}, {"large": "서울특별시", "detail": "금천구"}, {"large": "서울특별시", "detail": "강동구"}, {"large": "경기도", "detail": "광명시"}, {"large": "경기도", "detail": "남양주시"}, {"large": "경기도", "detail": "안양시"}, {"large": "대전광역시", "detail": "동구"}, {"large": "서울특별시", "detail": "중랑구"}, {"large": "광주광역시", "detail": "서구"}, {"large": "경기도", "detail": "김포시"}, {"large": "대구광역시", "detail": "수성구"}, {"large": "경기도", "detail": "시흥시"}, {"large": "경기도", "detail": "오산시"}, {"large": "경기도", "detail": "화성시"}, {"large": "인천광역시", "detail": "계양구"}, {"large": "경기도", "detail": "고양시"}, {"large": "인천광역시", "detail": "서구"}, {"large": "서울특별시", "detail": "강남구"}], "rate_min": 9.1, "rate_max": 12.9, "ltv_eff_max": 69.12, "ltv_rec_max": 92.31, "max_single": 1000000, "total_amt": 10600000, "total_count": 20, "latest_date": "2026-06-05"}, {"name": "(주)제이와이소프트", "types": ["신규", "연장"], "regions": [{"large": "경기도", "detail": "성남시"}, {"large": "인천광역시", "detail": "계양구"}, {"large": "부산광역시", "detail": "연제구"}, {"large": "서울특별시", "detail": "강남구"}], "rate_min": 7.8, "rate_max": 12.9, "ltv_eff_max": 65.28, "ltv_rec_max": 86.0, "max_single": 10000000, "total_amt": 21000000, "total_count": 4, "latest_date": "2026-06-05"}, {"name": "(주)피델컴퍼니", "types": ["연장"], "regions": [{"large": "서울특별시", "detail": "강동구"}, {"large": "서울특별시", "detail": "동대문구"}], "rate_min": 10.4, "rate_max": 11.0, "ltv_eff_max": 61.82, "ltv_rec_max": 73.22, "max_single": 6245000, "total_amt": 10535000, "total_count": 2, "latest_date": "2026-05-27"}, {"name": "(주)피피라이브", "types": ["연장", "후취", "지분", "신규"], "regions": [{"large": "경기도", "detail": "파주시"}, {"large": "경기도", "detail": "구리시"}, {"large": "인천광역시", "detail": "연수구"}, {"large": "인천광역시", "detail": "미추홀구"}, {"large": "경기도", "detail": "고양시"}, {"large": "경기도", "detail": "수원시"}, {"large": "인천광역시", "detail": "서구"}, {"large": "경기도", "detail": "시흥시"}, {"large": "서울특별시", "detail": "강남구"}, {"large": "경기도", "detail": "안양시"}, {"large": "대전광역시", "detail": "동구"}, {"large": "경기도", "detail": "김포시"}, {"large": "경기도", "detail": "화성시"}, {"large": "경기도", "detail": "오산시"}, {"large": "부산광역시", "detail": "금정구"}, {"large": "경기도", "detail": "의정부시"}, {"large": "서울특별시", "detail": "동대문구"}, {"large": "부산광역시", "detail": "남구"}, {"large": "경기도", "detail": "부천시"}, {"large": "경기도", "detail": "용인시"}, {"large": "광주광역시", "detail": "남구"}], "rate_min": 10.5, "rate_max": 12.9, "ltv_eff_max": 66.25, "ltv_rec_max": 74.46, "max_single": 49000000, "total_amt": 293000000, "total_count": 25, "latest_date": "2026-06-08"}, {"name": "기독교대한성결교회 예산교회", "types": ["신규", "후취", "연장"], "regions": [{"large": "경기도", "detail": "안산시"}, {"large": "경기도", "detail": "용인시"}, {"large": "경기도", "detail": "구리시"}, {"large": "서울특별시", "detail": "노원구"}, {"large": "서울특별시", "detail": "서초구"}, {"large": "경기도", "detail": "성남시"}, {"large": "경기도", "detail": "고양시"}, {"large": "서울특별시", "detail": "송파구"}, {"large": "경기도", "detail": "화성시"}, {"large": "경기도", "detail": "광명시"}, {"large": "서울특별시", "detail": "영등포구"}, {"large": "경기도", "detail": "수원시"}, {"large": "서울특별시", "detail": "서대문구"}, {"large": "경기도", "detail": "하남시"}, {"large": "경기도", "detail": "군포시"}, {"large": "서울특별시", "detail": "도봉구"}, {"large": "인천광역시", "detail": "남동구"}], "rate_min": 8.8, "rate_max": 11.6, "ltv_eff_max": 61.09, "ltv_rec_max": 86.34, "max_single": 300000, "total_amt": 6005000, "total_count": 23, "latest_date": "2026-04-16"}, {"name": "나래코퍼레이션(주)", "types": ["연장", "신규", "후취", "지분"], "regions": [{"large": "경기도", "detail": "과천시"}, {"large": "경기도", "detail": "용인시"}, {"large": "서울특별시", "detail": "송파구"}, {"large": "인천광역시", "detail": "연수구"}, {"large": "경기도", "detail": "안양시"}, {"large": "서울특별시", "detail": "노원구"}, {"large": "경기도", "detail": "군포시"}, {"large": "경기도", "detail": "광명시"}, {"large": "서울특별시", "detail": "서대문구"}, {"large": "인천광역시", "detail": "남동구"}, {"large": "서울특별시", "detail": "강동구"}, {"large": "서울특별시", "detail": "강남구"}], "rate_min": 8.2, "rate_max": 12.0, "ltv_eff_max": 67.44, "ltv_rec_max": 80.31, "max_single": 10075000, "total_amt": 71930000, "total_count": 16, "latest_date": "2026-05-28"}, {"name": "나인써밋 주식회사", "types": ["신규"], "regions": [{"large": "경기도", "detail": "하남시"}], "rate_min": 9.6, "rate_max": 9.6, "ltv_eff_max": 19.51, "ltv_rec_max": 24.2, "max_single": 16000000, "total_amt": 16000000, "total_count": 1, "latest_date": "2026-04-29"}, {"name": "다비드컨설팅", "types": ["후취", "연장", "신규"], "regions": [{"large": "서울특별시", "detail": "강남구"}, {"large": "경기도", "detail": "광명시"}, {"large": "서울특별시", "detail": "중랑구"}, {"large": "경기도", "detail": "군포시"}, {"large": "광주광역시", "detail": "광산구"}, {"large": "부산광역시", "detail": "남구"}, {"large": "서울특별시", "detail": "강동구"}, {"large": "서울특별시", "detail": "성동구"}, {"large": "경기도", "detail": "용인시"}, {"large": "경기도", "detail": "화성시"}], "rate_min": 7.7, "rate_max": 10.4, "ltv_eff_max": 51.61, "ltv_rec_max": 61.83, "max_single": 12430000, "total_amt": 54145000, "total_count": 10, "latest_date": "2026-05-21"}, {"name": "도담자산관리대부(주)", "types": ["후취", "신규", "연장"], "regions": [{"large": "서울특별시", "detail": "강남구"}, {"large": "서울특별시", "detail": "서초구"}, {"large": "경기도", "detail": "용인시"}], "rate_min": 8.9, "rate_max": 9.3, "ltv_eff_max": 43.79, "ltv_rec_max": 50.22, "max_single": 100000000, "total_amt": 360000000, "total_count": 4, "latest_date": "2026-05-12"}, {"name": "마칸인베스트 주식회사", "types": ["후취", "신규", "연장"], "regions": [{"large": "서울특별시", "detail": "송파구"}, {"large": "경기도", "detail": "광명시"}, {"large": "서울특별시", "detail": "서초구"}, {"large": "서울특별시", "detail": "강동구"}, {"large": "서울특별시", "detail": "강남구"}], "rate_min": 8.2, "rate_max": 12.0, "ltv_eff_max": 69.19, "ltv_rec_max": 85.21, "max_single": 35000000, "total_amt": 161000000, "total_count": 11, "latest_date": "2026-05-28"}, {"name": "모멘스솔루션 주식회사", "types": ["신규", "연장", "후취", "지분"], "regions": [{"large": "경기도", "detail": "남양주시"}, {"large": "경기도", "detail": "김포시"}, {"large": "경기도", "detail": "고양시"}, {"large": "충청남도", "detail": "아산시"}, {"large": "경기도", "detail": "파주시"}, {"large": "부산광역시", "detail": "동래구"}, {"large": "경기도", "detail": "화성시"}, {"large": "세종특별자치시", "detail": "세종특별자치시"}, {"large": "경기도", "detail": "구리시"}, {"large": "부산광역시", "detail": "부산진구"}, {"large": "인천광역시", "detail": "연수구"}, {"large": "인천광역시", "detail": "미추홀구"}, {"large": "서울특별시", "detail": "성북구"}, {"large": "서울특별시", "detail": "송파구"}, {"large": "대구광역시", "detail": "북구"}, {"large": "경기도", "detail": "수원시"}, {"large": "인천광역시", "detail": "서구"}, {"large": "경기도", "detail": "시흥시"}, {"large": "서울특별시", "detail": "서초구"}, {"large": "서울특별시", "detail": "강남구"}, {"large": "경기도", "detail": "성남시"}, {"large": "경기도", "detail": "광명시"}, {"large": "대전광역시", "detail": "동구"}, {"large": "광주광역시", "detail": "광산구"}, {"large": "경상북도", "detail": "포항시"}, {"large": "충청남도", "detail": "천안시"}, {"large": "경기도", "detail": "군포시"}, {"large": "경기도", "detail": "평택시"}, {"large": "서울특별시", "detail": "서대문구"}, {"large": "광주광역시", "detail": "서구"}, {"large": "경기도", "detail": "용인시"}, {"large": "대구광역시", "detail": "수성구"}, {"large": "전라북도", "detail": "군산시"}, {"large": "경기도", "detail": "하남시"}, {"large": "대구광역시", "detail": "동구"}, {"large": "경기도", "detail": "의정부시"}, {"large": "강원특별자치도", "detail": "원주시"}, {"large": "부산광역시", "detail": "금정구"}, {"large": "인천광역시", "detail": "남동구"}, {"large": "인천광역시", "detail": "계양구"}, {"large": "부산광역시", "detail": "기장군"}, {"large": "경기도", "detail": "광주시"}, {"large": "부산광역시", "detail": "남구"}, {"large": "경기도", "detail": "부천시"}, {"large": "대구광역시", "detail": "달성군"}, {"large": "부산광역시", "detail": "북구"}, {"large": "경기도", "detail": "안양시"}, {"large": "광주광역시", "detail": "남구"}], "rate_min": 9.1, "rate_max": 12.9, "ltv_eff_max": 66.25, "ltv_rec_max": 92.82, "max_single": 300000000, "total_amt": 3145200000, "total_count": 81, "latest_date": "2026-06-08"}, {"name": "모아폰커뮤니케이션(주)", "types": ["신규", "후취", "연장"], "regions": [{"large": "서울특별시", "detail": "성북구"}, {"large": "경기도", "detail": "하남시"}, {"large": "경기도", "detail": "화성시"}, {"large": "경기도", "detail": "광명시"}, {"large": "서울특별시", "detail": "서초구"}, {"large": "경기도", "detail": "안양시"}, {"large": "인천광역시", "detail": "남동구"}, {"large": "경기도", "detail": "김포시"}, {"large": "서울특별시", "detail": "강동구"}, {"large": "서울특별시", "detail": "강남구"}], "rate_min": 8.2, "rate_max": 12.3, "ltv_eff_max": 64.99, "ltv_rec_max": 79.99, "max_single": 20095000, "total_amt": 99115000, "total_count": 13, "latest_date": "2026-05-28"}, {"name": "밸류아시아파트너스 유한책임회사", "types": ["신규"], "regions": [{"large": "서울특별시", "detail": "영등포구"}], "rate_min": 9.6, "rate_max": 9.6, "ltv_eff_max": 36.3, "ltv_rec_max": 39.93, "max_single": 70000000, "total_amt": 70000000, "total_count": 1, "latest_date": "2026-04-08"}, {"name": "브라이트온 주식회사", "types": ["후취", "신규", "연장"], "regions": [{"large": "서울특별시", "detail": "강동구"}, {"large": "경기도", "detail": "구리시"}, {"large": "인천광역시", "detail": "연수구"}, {"large": "경기도", "detail": "화성시"}, {"large": "경기도", "detail": "광명시"}, {"large": "서울특별시", "detail": "노원구"}], "rate_min": 10.5, "rate_max": 12.9, "ltv_eff_max": 63.33, "ltv_rec_max": 76.43, "max_single": 10000000, "total_amt": 70000000, "total_count": 8, "latest_date": "2026-05-18"}, {"name": "새론건축 주식회사", "types": ["후취", "연장"], "regions": [{"large": "서울특별시", "detail": "강동구"}, {"large": "경기도", "detail": "안양시"}, {"large": "서울특별시", "detail": "서초구"}, {"large": "대구광역시", "detail": "수성구"}, {"large": "경기도", "detail": "화성시"}, {"large": "서울특별시", "detail": "동대문구"}, {"large": "경기도", "detail": "고양시"}, {"large": "인천광역시", "detail": "서구"}], "rate_min": 10.4, "rate_max": 12.9, "ltv_eff_max": 69.12, "ltv_rec_max": 88.07, "max_single": 22145000, "total_amt": 46980000, "total_count": 10, "latest_date": "2026-05-29"}, {"name": "에스텍 주식회사", "types": ["후취", "연장"], "regions": [{"large": "서울특별시", "detail": "강동구"}, {"large": "서울특별시", "detail": "서초구"}, {"large": "경기도", "detail": "용인시"}, {"large": "경기도", "detail": "김포시"}, {"large": "경기도", "detail": "고양시"}], "rate_min": 11.5, "rate_max": 12.9, "ltv_eff_max": 67.68, "ltv_rec_max": 81.65, "max_single": 20080000, "total_amt": 47300000, "total_count": 5, "latest_date": "2026-05-11"}, {"name": "에이치앤제이네트웍스 주식회사", "types": ["연장", "후취", "지분", "신규"], "regions": [{"large": "경기도", "detail": "파주시"}, {"large": "경기도", "detail": "화성시"}, {"large": "경기도", "detail": "구리시"}, {"large": "서울특별시", "detail": "강서구"}, {"large": "인천광역시", "detail": "연수구"}, {"large": "인천광역시", "detail": "미추홀구"}, {"large": "경기도", "detail": "고양시"}, {"large": "서울특별시", "detail": "서초구"}, {"large": "서울특별시", "detail": "강남구"}, {"large": "경기도", "detail": "안양시"}, {"large": "경기도", "detail": "김포시"}, {"large": "경기도", "detail": "수원시"}, {"large": "서울특별시", "detail": "구로구"}, {"large": "경기도", "detail": "군포시"}, {"large": "경기도", "detail": "용인시"}, {"large": "부산광역시", "detail": "금정구"}, {"large": "인천광역시", "detail": "계양구"}, {"large": "경기도", "detail": "시흥시"}, {"large": "서울특별시", "detail": "동대문구"}, {"large": "서울특별시", "detail": "노원구"}, {"large": "부산광역시", "detail": "북구"}], "rate_min": 9.9, "rate_max": 12.9, "ltv_eff_max": 67.52, "ltv_rec_max": 77.8, "max_single": 2000000, "total_amt": 36400000, "total_count": 29, "latest_date": "2026-06-04"}, {"name": "오케이네트웍스 주식회사", "types": ["신규", "연장"], "regions": [{"large": "부산광역시", "detail": "부산진구"}, {"large": "대전광역시", "detail": "서구"}, {"large": "경기도", "detail": "남양주시"}, {"large": "충청남도", "detail": "아산시"}, {"large": "서울특별시", "detail": "강서구"}, {"large": "서울특별시", "detail": "종로구"}, {"large": "경기도", "detail": "광명시"}, {"large": "서울특별시", "detail": "중랑구"}, {"large": "경기도", "detail": "용인시"}, {"large": "경기도", "detail": "하남시"}, {"large": "경기도", "detail": "안양시"}, {"large": "경기도", "detail": "고양시"}, {"large": "경기도", "detail": "군포시"}, {"large": "경기도", "detail": "화성시"}, {"large": "서울특별시", "detail": "영등포구"}, {"large": "서울특별시", "detail": "양천구"}, {"large": "경기도", "detail": "부천시"}, {"large": "경기도", "detail": "수원시"}, {"large": "서울특별시", "detail": "강남구"}, {"large": "서울특별시", "detail": "구로구"}, {"large": "서울특별시", "detail": "동작구"}, {"large": "서울특별시", "detail": "성동구"}, {"large": "경기도", "detail": "김포시"}, {"large": "서울특별시", "detail": "도봉구"}, {"large": "부산광역시", "detail": "남구"}, {"large": "전라북도", "detail": "군산시"}, {"large": "부산광역시", "detail": "사하구"}, {"large": "인천광역시", "detail": "남동구"}, {"large": "대전광역시", "detail": "유성구"}, {"large": "서울특별시", "detail": "강동구"}, {"large": "경기도", "detail": "의왕시"}, {"large": "경기도", "detail": "의정부시"}], "rate_min": 8.7, "rate_max": 12.0, "ltv_eff_max": 67.52, "ltv_rec_max": 84.69, "max_single": 220000000, "total_amt": 2643200000, "total_count": 47, "latest_date": "2026-05-22"}, {"name": "유한책임회사 나우리지", "types": ["후취", "연장", "신규"], "regions": [{"large": "서울특별시", "detail": "강남구"}, {"large": "경기도", "detail": "양주시"}, {"large": "경기도", "detail": "과천시"}, {"large": "부산광역시", "detail": "부산진구"}, {"large": "경기도", "detail": "수원시"}, {"large": "경기도", "detail": "안양시"}, {"large": "경기도", "detail": "용인시"}, {"large": "경기도", "detail": "화성시"}, {"large": "광주광역시", "detail": "광산구"}, {"large": "서울특별시", "detail": "서초구"}, {"large": "경기도", "detail": "광명시"}, {"large": "서울특별시", "detail": "동작구"}, {"large": "경기도", "detail": "고양시"}, {"large": "서울특별시", "detail": "강동구"}, {"large": "경기도", "detail": "김포시"}], "rate_min": 9.3, "rate_max": 12.9, "ltv_eff_max": 69.19, "ltv_rec_max": 86.28, "max_single": 14000000, "total_amt": 174000000, "total_count": 18, "latest_date": "2026-05-26"}, {"name": "유한책임회사 다인펀딩", "types": ["신규", "연장"], "regions": [{"large": "경기도", "detail": "안산시"}, {"large": "서울특별시", "detail": "강남구"}, {"large": "서울특별시", "detail": "노원구"}, {"large": "서울특별시", "detail": "서대문구"}, {"large": "경기도", "detail": "김포시"}, {"large": "경기도", "detail": "시흥시"}, {"large": "인천광역시", "detail": "계양구"}], "rate_min": 7.5, "rate_max": 11.9, "ltv_eff_max": 60.02, "ltv_rec_max": 79.39, "max_single": 3085000, "total_amt": 14130000, "total_count": 7, "latest_date": "2026-05-29"}, {"name": "유한회사 구작", "types": ["신규", "연장"], "regions": [{"large": "경기도", "detail": "성남시"}, {"large": "서울특별시", "detail": "노원구"}, {"large": "부산광역시", "detail": "부산진구"}, {"large": "경기도", "detail": "고양시"}, {"large": "경기도", "detail": "군포시"}, {"large": "서울특별시", "detail": "강동구"}, {"large": "서울특별시", "detail": "성동구"}, {"large": "경기도", "detail": "용인시"}, {"large": "경기도", "detail": "화성시"}], "rate_min": 7.7, "rate_max": 10.4, "ltv_eff_max": 51.61, "ltv_rec_max": 61.83, "max_single": 20000000, "total_amt": 37575000, "total_count": 10, "latest_date": "2026-06-05"}, {"name": "유한회사 스페이스홀딩스", "types": ["후취", "신규", "연장"], "regions": [{"large": "서울특별시", "detail": "강동구"}, {"large": "경기도", "detail": "안산시"}, {"large": "경기도", "detail": "화성시"}, {"large": "서울특별시", "detail": "노원구"}, {"large": "경기도", "detail": "용인시"}, {"large": "서울특별시", "detail": "송파구"}, {"large": "서울특별시", "detail": "서초구"}, {"large": "광주광역시", "detail": "광산구"}, {"large": "경기도", "detail": "수원시"}, {"large": "부산광역시", "detail": "금정구"}, {"large": "서울특별시", "detail": "강남구"}], "rate_min": 9.3, "rate_max": 12.9, "ltv_eff_max": 63.33, "ltv_rec_max": 76.43, "max_single": 3000000, "total_amt": 19400000, "total_count": 14, "latest_date": "2026-05-18"}, {"name": "유한회사 제이씨브", "types": ["후취", "연장", "신규", "지분"], "regions": [{"large": "서울특별시", "detail": "강남구"}, {"large": "경기도", "detail": "고양시"}, {"large": "인천광역시", "detail": "연수구"}, {"large": "서울특별시", "detail": "서초구"}, {"large": "경기도", "detail": "성남시"}, {"large": "서울특별시", "detail": "동작구"}, {"large": "경기도", "detail": "시흥시"}, {"large": "경기도", "detail": "용인시"}, {"large": "서울특별시", "detail": "관악구"}, {"large": "서울특별시", "detail": "강동구"}], "rate_min": 8.2, "rate_max": 12.9, "ltv_eff_max": 51.95, "ltv_rec_max": 67.56, "max_single": 50000000, "total_amt": 241000000, "total_count": 14, "latest_date": "2026-05-29"}, {"name": "유한회사 포스랜드", "types": ["신규", "연장"], "regions": [{"large": "경기도", "detail": "의정부시"}, {"large": "서울특별시", "detail": "동대문구"}], "rate_min": 11.0, "rate_max": 11.9, "ltv_eff_max": 61.82, "ltv_rec_max": 73.22, "max_single": 14010000, "total_amt": 15790000, "total_count": 2, "latest_date": "2026-05-26"}, {"name": "주식회사 나라에이스홀딩스", "types": ["후취"], "regions": [{"large": "서울특별시", "detail": "강남구"}], "rate_min": 10.0, "rate_max": 10.0, "ltv_eff_max": 40.98, "ltv_rec_max": 43.81, "max_single": 240000000, "total_amt": 240000000, "total_count": 1, "latest_date": "2026-04-23"}, {"name": "주식회사 나라지엘", "types": ["후취"], "regions": [{"large": "서울특별시", "detail": "강남구"}], "rate_min": 10.0, "rate_max": 10.0, "ltv_eff_max": 40.98, "ltv_rec_max": 43.81, "max_single": 240000000, "total_amt": 240000000, "total_count": 1, "latest_date": "2026-04-23"}, {"name": "주식회사 나라파트너스", "types": ["연장", "지분", "신규"], "regions": [{"large": "경기도", "detail": "파주시"}, {"large": "인천광역시", "detail": "연수구"}, {"large": "서울특별시", "detail": "서초구"}, {"large": "경기도", "detail": "남양주시"}, {"large": "서울특별시", "detail": "서대문구"}, {"large": "경기도", "detail": "오산시"}, {"large": "경기도", "detail": "김포시"}, {"large": "경기도", "detail": "성남시"}, {"large": "서울특별시", "detail": "강동구"}, {"large": "서울특별시", "detail": "동대문구"}, {"large": "경기도", "detail": "용인시"}], "rate_min": 8.6, "rate_max": 12.9, "ltv_eff_max": 65.3, "ltv_rec_max": 84.09, "max_single": 2000000, "total_amt": 13020000, "total_count": 12, "latest_date": "2026-06-05"}, {"name": "주식회사 다온인베스트", "types": ["지분"], "regions": [{"large": "서울특별시", "detail": "강남구"}], "rate_min": 12.9, "rate_max": 12.9, "ltv_eff_max": 20.23, "ltv_rec_max": 38.29, "max_single": 20000000, "total_amt": 20000000, "total_count": 1, "latest_date": "2026-04-07"}, {"name": "주식회사 대영국민대부2", "types": ["후취", "연장", "신규", "지분"], "regions": [{"large": "서울특별시", "detail": "강동구"}, {"large": "경기도", "detail": "양주시"}, {"large": "서울특별시", "detail": "금천구"}, {"large": "광주광역시", "detail": "남구"}, {"large": "부산광역시", "detail": "부산진구"}, {"large": "인천광역시", "detail": "연수구"}, {"large": "경기도", "detail": "용인시"}, {"large": "경기도", "detail": "안양시"}, {"large": "부산광역시", "detail": "강서구"}, {"large": "경기도", "detail": "고양시"}, {"large": "서울특별시", "detail": "서초구"}, {"large": "경기도", "detail": "남양주시"}, {"large": "경기도", "detail": "광명시"}, {"large": "인천광역시", "detail": "남동구"}, {"large": "서울특별시", "detail": "중랑구"}, {"large": "부산광역시", "detail": "남구"}, {"large": "경기도", "detail": "김포시"}, {"large": "대구광역시", "detail": "동구"}], "rate_min": 9.3, "rate_max": 12.9, "ltv_eff_max": 69.82, "ltv_rec_max": 92.79, "max_single": 77125000, "total_amt": 437050000, "total_count": 24, "latest_date": "2026-04-30"}, {"name": "주식회사 더베러", "types": ["신규"], "regions": [{"large": "부산광역시", "detail": "부산진구"}], "rate_min": 9.9, "rate_max": 9.9, "ltv_eff_max": 40.54, "ltv_rec_max": 48.11, "max_single": 1410000, "total_amt": 1410000, "total_count": 1, "latest_date": "2026-04-30"}, {"name": "주식회사 더스킨홀딩스", "types": ["신규", "후취", "연장"], "regions": [{"large": "서울특별시", "detail": "동작구"}, {"large": "서울특별시", "detail": "송파구"}, {"large": "서울특별시", "detail": "강남구"}, {"large": "경기도", "detail": "성남시"}, {"large": "서울특별시", "detail": "강서구"}, {"large": "서울특별시", "detail": "노원구"}, {"large": "경기도", "detail": "수원시"}, {"large": "서울특별시", "detail": "서초구"}, {"large": "서울특별시", "detail": "강동구"}, {"large": "서울특별시", "detail": "영등포구"}, {"large": "서울특별시", "detail": "서대문구"}, {"large": "경기도", "detail": "하남시"}, {"large": "경기도", "detail": "화성시"}, {"large": "서울특별시", "detail": "마포구"}, {"large": "서울특별시", "detail": "성동구"}], "rate_min": 7.7, "rate_max": 12.5, "ltv_eff_max": 67.97, "ltv_rec_max": 84.32, "max_single": 2000000, "total_amt": 20250000, "total_count": 29, "latest_date": "2026-05-28"}, {"name": "주식회사 디에이일차", "types": ["신규", "연장", "후취"], "regions": [{"large": "경기도", "detail": "남양주시"}, {"large": "경기도", "detail": "성남시"}, {"large": "부산광역시", "detail": "부산진구"}, {"large": "인천광역시", "detail": "연수구"}, {"large": "경기도", "detail": "광명시"}, {"large": "서울특별시", "detail": "중랑구"}, {"large": "대구광역시", "detail": "북구"}, {"large": "부산광역시", "detail": "기장군"}, {"large": "경기도", "detail": "수원시"}, {"large": "경기도", "detail": "고양시"}, {"large": "경기도", "detail": "파주시"}, {"large": "경기도", "detail": "시흥시"}, {"large": "경기도", "detail": "화성시"}, {"large": "부산광역시", "detail": "동래구"}, {"large": "광주광역시", "detail": "서구"}, {"large": "대구광역시", "detail": "동구"}, {"large": "부산광역시", "detail": "사하구"}, {"large": "인천광역시", "detail": "서구"}, {"large": "인천광역시", "detail": "계양구"}, {"large": "대구광역시", "detail": "서구"}, {"large": "서울특별시", "detail": "관악구"}, {"large": "서울특별시", "detail": "동대문구"}, {"large": "울산광역시", "detail": "울주군"}, {"large": "경기도", "detail": "용인시"}, {"large": "경기도", "detail": "김포시"}, {"large": "서울특별시", "detail": "동작구"}, {"large": "인천광역시", "detail": "남동구"}, {"large": "부산광역시", "detail": "남구"}, {"large": "부산광역시", "detail": "연제구"}, {"large": "대구광역시", "detail": "달성군"}, {"large": "서울특별시", "detail": "강동구"}, {"large": "서울특별시", "detail": "강남구"}, {"large": "서울특별시", "detail": "노원구"}, {"large": "경기도", "detail": "의왕시"}, {"large": "경기도", "detail": "의정부시"}, {"large": "대전광역시", "detail": "유성구"}, {"large": "광주광역시", "detail": "남구"}], "rate_min": 8.0, "rate_max": 12.9, "ltv_eff_max": 69.12, "ltv_rec_max": 93.68, "max_single": 20000000, "total_amt": 715115000, "total_count": 51, "latest_date": "2026-06-08"}, {"name": "주식회사 명일", "types": ["신규"], "regions": [{"large": "경기도", "detail": "시흥시"}], "rate_min": 10.6, "rate_max": 10.6, "ltv_eff_max": 31.46, "ltv_rec_max": 57.53, "max_single": 10000, "total_amt": 10000, "total_count": 1, "latest_date": "2026-04-15"}, {"name": "주식회사 문화상품권", "types": ["연장", "신규"], "regions": [{"large": "경기도", "detail": "과천시"}, {"large": "서울특별시", "detail": "금천구"}, {"large": "인천광역시", "detail": "연수구"}, {"large": "부산광역시", "detail": "기장군"}, {"large": "경기도", "detail": "파주시"}, {"large": "서울특별시", "detail": "양천구"}, {"large": "서울특별시", "detail": "서초구"}, {"large": "인천광역시", "detail": "부평구"}, {"large": "경상북도", "detail": "포항시"}, {"large": "광주광역시", "detail": "광산구"}, {"large": "경기도", "detail": "김포시"}, {"large": "경기도", "detail": "양주시"}, {"large": "경기도", "detail": "시흥시"}, {"large": "강원특별자치도", "detail": "원주시"}, {"large": "대구광역시", "detail": "서구"}, {"large": "경기도", "detail": "고양시"}, {"large": "경기도", "detail": "평택시"}, {"large": "경기도", "detail": "용인시"}, {"large": "경기도", "detail": "의정부시"}, {"large": "경기도", "detail": "광명시"}], "rate_min": 11.4, "rate_max": 12.9, "ltv_eff_max": 68.64, "ltv_rec_max": 90.09, "max_single": 400000000, "total_amt": 1173000000, "total_count": 22, "latest_date": "2026-06-05"}, {"name": "주식회사 보개", "types": ["신규"], "regions": [{"large": "경기도", "detail": "하남시"}], "rate_min": 9.6, "rate_max": 9.6, "ltv_eff_max": 19.51, "ltv_rec_max": 24.2, "max_single": 22000000, "total_amt": 22000000, "total_count": 1, "latest_date": "2026-04-29"}, {"name": "주식회사 비즈액티베이터", "types": ["연장"], "regions": [{"large": "강원특별자치도", "detail": "원주시"}, {"large": "대구광역시", "detail": "달서구"}], "rate_min": 11.9, "rate_max": 12.9, "ltv_eff_max": 61.19, "ltv_rec_max": 75.84, "max_single": 5000000, "total_amt": 10000000, "total_count": 2, "latest_date": "2026-06-02"}, {"name": "주식회사 삼선초대부", "types": ["후취", "연장", "신규", "지분"], "regions": [{"large": "서울특별시", "detail": "송파구"}, {"large": "경기도", "detail": "과천시"}, {"large": "대전광역시", "detail": "서구"}, {"large": "서울특별시", "detail": "금천구"}, {"large": "세종특별자치시", "detail": "세종특별자치시"}, {"large": "인천광역시", "detail": "연수구"}, {"large": "경기도", "detail": "용인시"}, {"large": "서울특별시", "detail": "강동구"}, {"large": "경기도", "detail": "하남시"}, {"large": "경기도", "detail": "고양시"}, {"large": "경기도", "detail": "화성시"}, {"large": "서울특별시", "detail": "양천구"}, {"large": "서울특별시", "detail": "서초구"}, {"large": "경기도", "detail": "광명시"}, {"large": "경기도", "detail": "군포시"}, {"large": "경기도", "detail": "평택시"}, {"large": "부산광역시", "detail": "남구"}, {"large": "인천광역시", "detail": "남동구"}, {"large": "경기도", "detail": "오산시"}, {"large": "서울특별시", "detail": "강남구"}], "rate_min": 8.9, "rate_max": 12.9, "ltv_eff_max": 68.98, "ltv_rec_max": 92.79, "max_single": 90000000, "total_amt": 464140000, "total_count": 24, "latest_date": "2026-05-04"}, {"name": "주식회사 서원컴퍼니", "types": ["후취"], "regions": [{"large": "서울특별시", "detail": "강남구"}], "rate_min": 9.3, "rate_max": 9.3, "ltv_eff_max": 11.21, "ltv_rec_max": 12.24, "max_single": 5000000, "total_amt": 5000000, "total_count": 1, "latest_date": "2026-04-30"}, {"name": "주식회사 세진아이앤씨", "types": ["신규", "연장"], "regions": [{"large": "경기도", "detail": "성남시"}, {"large": "서울특별시", "detail": "영등포구"}, {"large": "경기도", "detail": "용인시"}], "rate_min": 8.9, "rate_max": 9.6, "ltv_eff_max": 36.3, "ltv_rec_max": 70.0, "max_single": 70000000, "total_amt": 200000000, "total_count": 3, "latest_date": "2026-05-14"}, {"name": "주식회사 솔라파트너스", "types": ["연장", "후취"], "regions": [{"large": "서울특별시", "detail": "서초구"}, {"large": "서울특별시", "detail": "송파구"}], "rate_min": 9.3, "rate_max": 12.0, "ltv_eff_max": 36.32, "ltv_rec_max": 36.32, "max_single": 80000000, "total_amt": 121410000, "total_count": 2, "latest_date": "2026-05-20"}, {"name": "주식회사 송현자산관리대부", "types": ["연장"], "regions": [{"large": "경기도", "detail": "화성시"}], "rate_min": 11.9, "rate_max": 11.9, "ltv_eff_max": 62.65, "ltv_rec_max": 88.07, "max_single": 3880000, "total_amt": 3880000, "total_count": 1, "latest_date": "2026-04-11"}, {"name": "주식회사 시그마로직", "types": ["후취", "신규", "연장", "지분"], "regions": [{"large": "서울특별시", "detail": "송파구"}, {"large": "서울특별시", "detail": "강동구"}, {"large": "경기도", "detail": "안산시"}, {"large": "경기도", "detail": "과천시"}, {"large": "경기도", "detail": "성남시"}, {"large": "부산광역시", "detail": "부산진구"}, {"large": "부산광역시", "detail": "동래구"}, {"large": "서울특별시", "detail": "강서구"}, {"large": "서울특별시", "detail": "노원구"}, {"large": "광주광역시", "detail": "남구"}, {"large": "인천광역시", "detail": "연수구"}, {"large": "경기도", "detail": "용인시"}, {"large": "서울특별시", "detail": "중랑구"}, {"large": "서울특별시", "detail": "서초구"}, {"large": "경기도", "detail": "하남시"}, {"large": "경기도", "detail": "수원시"}, {"large": "경기도", "detail": "고양시"}, {"large": "부산광역시", "detail": "강서구"}, {"large": "경기도", "detail": "군포시"}, {"large": "서울특별시", "detail": "양천구"}, {"large": "경기도", "detail": "남양주시"}, {"large": "경기도", "detail": "안양시"}, {"large": "경기도", "detail": "광명시"}, {"large": "경기도", "detail": "부천시"}, {"large": "서울특별시", "detail": "서대문구"}, {"large": "경기도", "detail": "화성시"}, {"large": "광주광역시", "detail": "광산구"}, {"large": "경기도", "detail": "시흥시"}, {"large": "서울특별시", "detail": "도봉구"}, {"large": "부산광역시", "detail": "남구"}, {"large": "경기도", "detail": "김포시"}, {"large": "대구광역시", "detail": "수성구"}, {"large": "경기도", "detail": "오산시"}, {"large": "인천광역시", "detail": "남동구"}, {"large": "서울특별시", "detail": "동대문구"}, {"large": "대구광역시", "detail": "동구"}, {"large": "인천광역시", "detail": "서구"}, {"large": "서울특별시", "detail": "강남구"}, {"large": "광주광역시", "detail": "서구"}, {"large": "경기도", "detail": "의정부시"}], "rate_min": 8.2, "rate_max": 12.9, "ltv_eff_max": 69.82, "ltv_rec_max": 92.79, "max_single": 20000000, "total_amt": 189965000, "total_count": 68, "latest_date": "2026-05-28"}, {"name": "주식회사 실버레이크파트너스", "types": ["연장", "신규", "후취"], "regions": [{"large": "서울특별시", "detail": "중랑구"}, {"large": "경기도", "detail": "화성시"}, {"large": "대구광역시", "detail": "동구"}, {"large": "서울특별시", "detail": "강동구"}, {"large": "서울특별시", "detail": "강남구"}, {"large": "부산광역시", "detail": "북구"}, {"large": "서울특별시", "detail": "송파구"}, {"large": "광주광역시", "detail": "남구"}], "rate_min": 8.2, "rate_max": 12.9, "ltv_eff_max": 55.14, "ltv_rec_max": 70.84, "max_single": 44975000, "total_amt": 70470000, "total_count": 8, "latest_date": "2026-05-28"}, {"name": "주식회사 아이원디앤씨", "types": ["연장", "신규"], "regions": [{"large": "서울특별시", "detail": "송파구"}, {"large": "서울특별시", "detail": "양천구"}, {"large": "서울특별시", "detail": "서초구"}, {"large": "경기도", "detail": "고양시"}, {"large": "경기도", "detail": "성남시"}, {"large": "서울특별시", "detail": "강동구"}, {"large": "서울특별시", "detail": "동대문구"}, {"large": "인천광역시", "detail": "계양구"}, {"large": "부산광역시", "detail": "연제구"}, {"large": "서울특별시", "detail": "강남구"}, {"large": "경기도", "detail": "용인시"}, {"large": "경기도", "detail": "의왕시"}, {"large": "경기도", "detail": "화성시"}], "rate_min": 8.2, "rate_max": 12.9, "ltv_eff_max": 69.19, "ltv_rec_max": 86.0, "max_single": 6975000, "total_amt": 58790000, "total_count": 14, "latest_date": "2026-06-05"}, {"name": "주식회사 에잇퍼센트", "types": ["신규", "연장"], "regions": [{"large": "경기도", "detail": "성남시"}, {"large": "경기도", "detail": "하남시"}, {"large": "서울특별시", "detail": "강동구"}, {"large": "경기도", "detail": "용인시"}], "rate_min": 8.7, "rate_max": 10.4, "ltv_eff_max": 51.61, "ltv_rec_max": 69.39, "max_single": 102550000, "total_amt": 193910000, "total_count": 4, "latest_date": "2026-05-20"}, {"name": "주식회사 엠와이컨설팅", "types": ["연장"], "regions": [{"large": "서울특별시", "detail": "서초구"}], "rate_min": 11.0, "rate_max": 11.0, "ltv_eff_max": 64.43, "ltv_rec_max": 66.76, "max_single": 25180000, "total_amt": 25180000, "total_count": 1, "latest_date": "2026-04-15"}, {"name": "주식회사 영앤컴퍼니", "types": ["후취", "신규", "연장"], "regions": [{"large": "서울특별시", "detail": "송파구"}, {"large": "서울특별시", "detail": "강남구"}, {"large": "서울특별시", "detail": "서초구"}], "rate_min": 8.2, "rate_max": 12.0, "ltv_eff_max": 67.68, "ltv_rec_max": 81.65, "max_single": 25000000, "total_amt": 97000000, "total_count": 10, "latest_date": "2026-05-28"}, {"name": "주식회사 와이오와이", "types": ["신규"], "regions": [{"large": "경기도", "detail": "광명시"}], "rate_min": 12.9, "rate_max": 12.9, "ltv_eff_max": 67.83, "ltv_rec_max": 90.65, "max_single": 32000000, "total_amt": 32000000, "total_count": 1, "latest_date": "2026-04-03"}, {"name": "주식회사 와이플로우", "types": ["신규", "연장"], "regions": [{"large": "경기도", "detail": "하남시"}, {"large": "서울특별시", "detail": "강서구"}, {"large": "서울특별시", "detail": "송파구"}, {"large": "서울특별시", "detail": "영등포구"}], "rate_min": 9.3, "rate_max": 11.0, "ltv_eff_max": 59.26, "ltv_rec_max": 69.39, "max_single": 100000000, "total_amt": 280000000, "total_count": 5, "latest_date": "2026-04-29"}, {"name": "주식회사 용용테크", "types": ["신규", "후취", "연장"], "regions": [{"large": "서울특별시", "detail": "동작구"}, {"large": "서울특별시", "detail": "송파구"}, {"large": "경기도", "detail": "하남시"}, {"large": "서울특별시", "detail": "강남구"}, {"large": "경기도", "detail": "안산시"}, {"large": "경기도", "detail": "남양주시"}, {"large": "경기도", "detail": "김포시"}, {"large": "경기도", "detail": "성남시"}, {"large": "경기도", "detail": "고양시"}, {"large": "부산광역시", "detail": "부산진구"}, {"large": "대전광역시", "detail": "서구"}, {"large": "충청남도", "detail": "아산시"}, {"large": "경기도", "detail": "파주시"}, {"large": "부산광역시", "detail": "동래구"}, {"large": "경기도", "detail": "화성시"}, {"large": "세종특별자치시", "detail": "세종특별자치시"}, {"large": "서울특별시", "detail": "강서구"}, {"large": "서울특별시", "detail": "종로구"}, {"large": "인천광역시", "detail": "미추홀구"}, {"large": "서울특별시", "detail": "성북구"}, {"large": "경기도", "detail": "광명시"}, {"large": "경기도", "detail": "안양시"}, {"large": "서울특별시", "detail": "노원구"}, {"large": "대구광역시", "detail": "북구"}, {"large": "서울특별시", "detail": "서초구"}, {"large": "경기도", "detail": "용인시"}, {"large": "서울특별시", "detail": "강동구"}, {"large": "경기도", "detail": "수원시"}, {"large": "인천광역시", "detail": "서구"}, {"large": "서울특별시", "detail": "영등포구"}, {"large": "경기도", "detail": "시흥시"}, {"large": "경기도", "detail": "부천시"}, {"large": "인천광역시", "detail": "부평구"}, {"large": "광주광역시", "detail": "광산구"}, {"large": "경상북도", "detail": "포항시"}, {"large": "충청남도", "detail": "천안시"}, {"large": "경기도", "detail": "평택시"}, {"large": "경기도", "detail": "오산시"}, {"large": "경기도", "detail": "양주시"}, {"large": "서울특별시", "detail": "성동구"}, {"large": "서울특별시", "detail": "서대문구"}, {"large": "광주광역시", "detail": "서구"}, {"large": "대구광역시", "detail": "수성구"}, {"large": "대구광역시", "detail": "동구"}, {"large": "경기도", "detail": "의정부시"}, {"large": "부산광역시", "detail": "사하구"}, {"large": "강원특별자치도", "detail": "원주시"}, {"large": "부산광역시", "detail": "금정구"}, {"large": "인천광역시", "detail": "남동구"}, {"large": "인천광역시", "detail": "계양구"}, {"large": "서울특별시", "detail": "관악구"}, {"large": "부산광역시", "detail": "기장군"}, {"large": "울산광역시", "detail": "울주군"}, {"large": "서울특별시", "detail": "동대문구"}, {"large": "부산광역시", "detail": "남구"}, {"large": "대구광역시", "detail": "달성군"}, {"large": "부산광역시", "detail": "북구"}, {"large": "대전광역시", "detail": "유성구"}], "rate_min": 7.5, "rate_max": 12.9, "ltv_eff_max": 69.19, "ltv_rec_max": 92.82, "max_single": 400000000, "total_amt": 5813510000, "total_count": 130, "latest_date": "2026-06-08"}, {"name": "주식회사 우디", "types": ["후취", "연장", "신규", "지분"], "regions": [{"large": "서울특별시", "detail": "송파구"}, {"large": "서울특별시", "detail": "강남구"}, {"large": "경기도", "detail": "양주시"}, {"large": "경기도", "detail": "안산시"}, {"large": "경기도", "detail": "남양주시"}, {"large": "경기도", "detail": "성남시"}, {"large": "경기도", "detail": "고양시"}, {"large": "부산광역시", "detail": "부산진구"}, {"large": "경기도", "detail": "파주시"}, {"large": "경기도", "detail": "구리시"}, {"large": "서울특별시", "detail": "노원구"}, {"large": "인천광역시", "detail": "연수구"}, {"large": "서울특별시", "detail": "성북구"}, {"large": "경기도", "detail": "광명시"}, {"large": "서울특별시", "detail": "중랑구"}, {"large": "경기도", "detail": "안양시"}, {"large": "부산광역시", "detail": "기장군"}, {"large": "경기도", "detail": "용인시"}, {"large": "경기도", "detail": "하남시"}, {"large": "경기도", "detail": "화성시"}, {"large": "서울특별시", "detail": "영등포구"}, {"large": "서울특별시", "detail": "양천구"}, {"large": "경기도", "detail": "시흥시"}, {"large": "부산광역시", "detail": "동래구"}, {"large": "대전광역시", "detail": "동구"}, {"large": "경기도", "detail": "부천시"}, {"large": "경기도", "detail": "수원시"}, {"large": "서울특별시", "detail": "서대문구"}, {"large": "광주광역시", "detail": "광산구"}, {"large": "대구광역시", "detail": "북구"}, {"large": "서울특별시", "detail": "서초구"}, {"large": "충청남도", "detail": "천안시"}, {"large": "경기도", "detail": "군포시"}, {"large": "경기도", "detail": "평택시"}, {"large": "경기도", "detail": "오산시"}, {"large": "서울특별시", "detail": "성동구"}, {"large": "경기도", "detail": "김포시"}, {"large": "부산광역시", "detail": "남구"}, {"large": "인천광역시", "detail": "서구"}, {"large": "전라북도", "detail": "군산시"}, {"large": "서울특별시", "detail": "마포구"}, {"large": "인천광역시", "detail": "남동구"}, {"large": "대구광역시", "detail": "동구"}, {"large": "경기도", "detail": "의정부시"}, {"large": "강원특별자치도", "detail": "원주시"}, {"large": "서울특별시", "detail": "강동구"}, {"large": "부산광역시", "detail": "금정구"}, {"large": "서울특별시", "detail": "관악구"}, {"large": "서울특별시", "detail": "동대문구"}, {"large": "울산광역시", "detail": "울주군"}, {"large": "인천광역시", "detail": "계양구"}, {"large": "서울특별시", "detail": "동작구"}, {"large": "경기도", "detail": "광주시"}, {"large": "부산광역시", "detail": "북구"}, {"large": "경기도", "detail": "의왕시"}, {"large": "대전광역시", "detail": "유성구"}], "rate_min": 7.7, "rate_max": 12.9, "ltv_eff_max": 66.44, "ltv_rec_max": 93.68, "max_single": 20000000, "total_amt": 172505000, "total_count": 114, "latest_date": "2026-06-04"}, {"name": "주식회사 원벤처", "types": ["후취", "연장", "신규", "지분"], "regions": [{"large": "서울특별시", "detail": "강남구"}, {"large": "서울특별시", "detail": "서초구"}, {"large": "경기도", "detail": "하남시"}, {"large": "경기도", "detail": "고양시"}, {"large": "서울특별시", "detail": "영등포구"}, {"large": "경기도", "detail": "성남시"}, {"large": "서울특별시", "detail": "동작구"}, {"large": "경기도", "detail": "시흥시"}, {"large": "서울특별시", "detail": "강동구"}, {"large": "경기도", "detail": "의왕시"}], "rate_min": 8.2, "rate_max": 12.9, "ltv_eff_max": 49.03, "ltv_rec_max": 67.56, "max_single": 80000000, "total_amt": 446000000, "total_count": 13, "latest_date": "2026-05-28"}, {"name": "주식회사 웨인컴퍼니", "types": ["연장"], "regions": [{"large": "경기도", "detail": "시흥시"}, {"large": "인천광역시", "detail": "서구"}], "rate_min": 12.9, "rate_max": 12.9, "ltv_eff_max": 69.12, "ltv_rec_max": 84.71, "max_single": 7800000, "total_amt": 11060000, "total_count": 2, "latest_date": "2026-06-05"}, {"name": "주식회사 위더스플레이스", "types": ["연장", "신규"], "regions": [{"large": "서울특별시", "detail": "중랑구"}, {"large": "경기도", "detail": "하남시"}, {"large": "서울특별시", "detail": "송파구"}, {"large": "서울특별시", "detail": "노원구"}, {"large": "경기도", "detail": "군포시"}, {"large": "서울특별시", "detail": "성북구"}, {"large": "서울특별시", "detail": "성동구"}, {"large": "서울특별시", "detail": "도봉구"}, {"large": "경기도", "detail": "용인시"}, {"large": "부산광역시", "detail": "남구"}], "rate_min": 8.7, "rate_max": 10.2, "ltv_eff_max": 49.02, "ltv_rec_max": 61.14, "max_single": 100000000, "total_amt": 527000000, "total_count": 11, "latest_date": "2026-05-13"}, {"name": "주식회사 위시몬", "types": ["신규", "후취", "연장"], "regions": [{"large": "서울특별시", "detail": "강남구"}, {"large": "서울특별시", "detail": "강동구"}, {"large": "경기도", "detail": "남양주시"}, {"large": "경기도", "detail": "안양시"}, {"large": "서울특별시", "detail": "성동구"}, {"large": "경기도", "detail": "용인시"}], "rate_min": 7.5, "rate_max": 12.3, "ltv_eff_max": 64.21, "ltv_rec_max": 73.85, "max_single": 1200000, "total_amt": 3500000, "total_count": 7, "latest_date": "2026-05-21"}, {"name": "주식회사 윤앤윤", "types": ["신규", "연장"], "regions": [{"large": "경기도", "detail": "성남시"}, {"large": "경기도", "detail": "하남시"}, {"large": "서울특별시", "detail": "송파구"}, {"large": "서울특별시", "detail": "서대문구"}, {"large": "경기도", "detail": "화성시"}, {"large": "서울특별시", "detail": "성동구"}, {"large": "서울특별시", "detail": "강남구"}], "rate_min": 7.8, "rate_max": 11.4, "ltv_eff_max": 57.68, "ltv_rec_max": 74.1, "max_single": 50350000, "total_amt": 106775000, "total_count": 8, "latest_date": "2026-05-29"}, {"name": "주식회사 윤앤코", "types": ["신규", "연장"], "regions": [{"large": "경기도", "detail": "성남시"}, {"large": "서울특별시", "detail": "영등포구"}, {"large": "경기도", "detail": "광명시"}, {"large": "경기도", "detail": "군포시"}, {"large": "서울특별시", "detail": "동대문구"}, {"large": "대전광역시", "detail": "유성구"}, {"large": "경기도", "detail": "의왕시"}], "rate_min": 8.7, "rate_max": 11.6, "ltv_eff_max": 53.96, "ltv_rec_max": 69.91, "max_single": 20000000, "total_amt": 100000000, "total_count": 7, "latest_date": "2026-05-19"}, {"name": "주식회사 제이에이치엘", "types": ["후취", "신규", "연장", "지분"], "regions": [{"large": "서울특별시", "detail": "송파구"}, {"large": "서울특별시", "detail": "강동구"}, {"large": "경기도", "detail": "안산시"}, {"large": "경기도", "detail": "남양주시"}, {"large": "경기도", "detail": "성남시"}, {"large": "경기도", "detail": "고양시"}, {"large": "대전광역시", "detail": "서구"}, {"large": "경기도", "detail": "용인시"}, {"large": "세종특별자치시", "detail": "세종특별자치시"}, {"large": "경기도", "detail": "구리시"}, {"large": "서울특별시", "detail": "강서구"}, {"large": "부산광역시", "detail": "부산진구"}, {"large": "서울특별시", "detail": "종로구"}, {"large": "서울특별시", "detail": "성북구"}, {"large": "경기도", "detail": "광명시"}, {"large": "서울특별시", "detail": "중랑구"}, {"large": "경기도", "detail": "안양시"}, {"large": "서울특별시", "detail": "노원구"}, {"large": "경기도", "detail": "파주시"}, {"large": "서울특별시", "detail": "서초구"}, {"large": "경기도", "detail": "하남시"}, {"large": "경기도", "detail": "화성시"}, {"large": "서울특별시", "detail": "양천구"}, {"large": "서울특별시", "detail": "강남구"}, {"large": "서울특별시", "detail": "영등포구"}, {"large": "인천광역시", "detail": "서구"}, {"large": "경기도", "detail": "수원시"}, {"large": "경기도", "detail": "김포시"}, {"large": "서울특별시", "detail": "서대문구"}, {"large": "서울특별시", "detail": "구로구"}, {"large": "경기도", "detail": "오산시"}, {"large": "경기도", "detail": "평택시"}, {"large": "서울특별시", "detail": "도봉구"}, {"large": "전라북도", "detail": "군산시"}, {"large": "강원특별자치도", "detail": "원주시"}, {"large": "인천광역시", "detail": "남동구"}, {"large": "인천광역시", "detail": "계양구"}, {"large": "서울특별시", "detail": "관악구"}, {"large": "경기도", "detail": "시흥시"}, {"large": "서울특별시", "detail": "동대문구"}, {"large": "서울특별시", "detail": "성동구"}, {"large": "경기도", "detail": "의왕시"}], "rate_min": 7.7, "rate_max": 12.9, "ltv_eff_max": 69.12, "ltv_rec_max": 92.31, "max_single": 2410000, "total_amt": 43190000, "total_count": 86, "latest_date": "2026-06-04"}, {"name": "주식회사 케이세이프홀딩스", "types": ["후취", "신규"], "regions": [{"large": "서울특별시", "detail": "강남구"}, {"large": "서울특별시", "detail": "송파구"}, {"large": "서울특별시", "detail": "서초구"}, {"large": "경기도", "detail": "성남시"}, {"large": "경기도", "detail": "하남시"}], "rate_min": 9.1, "rate_max": 11.5, "ltv_eff_max": 67.44, "ltv_rec_max": 73.02, "max_single": 100000000, "total_amt": 333130000, "total_count": 6, "latest_date": "2026-04-30"}, {"name": "주식회사 코미", "types": ["신규", "연장"], "regions": [{"large": "경기도", "detail": "하남시"}, {"large": "서울특별시", "detail": "강서구"}], "rate_min": 9.6, "rate_max": 11.0, "ltv_eff_max": 59.26, "ltv_rec_max": 66.77, "max_single": 47000000, "total_amt": 81000000, "total_count": 2, "latest_date": "2026-04-29"}, {"name": "주식회사 트러스트팜", "types": ["연장", "후취", "신규"], "regions": [{"large": "경기도", "detail": "광명시"}, {"large": "경기도", "detail": "군포시"}, {"large": "경기도", "detail": "시흥시"}, {"large": "서울특별시", "detail": "강동구"}, {"large": "경기도", "detail": "광주시"}, {"large": "서울특별시", "detail": "강남구"}], "rate_min": 8.7, "rate_max": 12.9, "ltv_eff_max": 69.78, "ltv_rec_max": 91.48, "max_single": 4000000, "total_amt": 14755000, "total_count": 7, "latest_date": "2026-05-13"}, {"name": "주식회사 트리스인", "types": ["후취", "연장", "신규"], "regions": [{"large": "서울특별시", "detail": "강동구"}, {"large": "경기도", "detail": "안산시"}, {"large": "경기도", "detail": "과천시"}, {"large": "부산광역시", "detail": "부산진구"}, {"large": "경기도", "detail": "수원시"}, {"large": "경기도", "detail": "용인시"}, {"large": "세종특별자치시", "detail": "세종특별자치시"}, {"large": "부산광역시", "detail": "강서구"}, {"large": "경기도", "detail": "화성시"}, {"large": "서울특별시", "detail": "양천구"}, {"large": "서울특별시", "detail": "서초구"}, {"large": "경기도", "detail": "안양시"}, {"large": "대전광역시", "detail": "동구"}, {"large": "서울특별시", "detail": "구로구"}, {"large": "서울특별시", "detail": "중랑구"}, {"large": "부산광역시", "detail": "동래구"}, {"large": "경기도", "detail": "김포시"}, {"large": "경기도", "detail": "시흥시"}, {"large": "인천광역시", "detail": "남동구"}, {"large": "경기도", "detail": "오산시"}, {"large": "경기도", "detail": "광명시"}, {"large": "인천광역시", "detail": "서구"}], "rate_min": 11.6, "rate_max": 12.9, "ltv_eff_max": 69.78, "ltv_rec_max": 92.31, "max_single": 13000000, "total_amt": 196000000, "total_count": 29, "latest_date": "2026-06-05"}, {"name": "주식회사 피아트에셋매니지먼트", "types": ["연장"], "regions": [{"large": "서울특별시", "detail": "강동구"}], "rate_min": 8.8, "rate_max": 8.8, "ltv_eff_max": 38.29, "ltv_rec_max": 53.81, "max_single": 20000000, "total_amt": 20000000, "total_count": 1, "latest_date": "2026-05-26"}, {"name": "주식회사 하루카운트", "types": ["연장", "후취", "지분", "신규"], "regions": [{"large": "경기도", "detail": "과천시"}, {"large": "경기도", "detail": "구리시"}, {"large": "인천광역시", "detail": "연수구"}, {"large": "경기도", "detail": "용인시"}, {"large": "서울특별시", "detail": "강동구"}, {"large": "경기도", "detail": "안양시"}, {"large": "경기도", "detail": "고양시"}, {"large": "경기도", "detail": "화성시"}, {"large": "서울특별시", "detail": "양천구"}, {"large": "서울특별시", "detail": "서초구"}, {"large": "경기도", "detail": "군포시"}, {"large": "인천광역시", "detail": "남동구"}, {"large": "인천광역시", "detail": "계양구"}, {"large": "서울특별시", "detail": "동대문구"}, {"large": "대구광역시", "detail": "동구"}], "rate_min": 8.9, "rate_max": 12.5, "ltv_eff_max": 68.98, "ltv_rec_max": 92.79, "max_single": 10000000, "total_amt": 119000000, "total_count": 18, "latest_date": "2026-06-01"}, {"name": "투피온 유한책임회사", "types": ["신규", "연장", "후취"], "regions": [{"large": "서울특별시", "detail": "동작구"}, {"large": "경기도", "detail": "하남시"}, {"large": "서울특별시", "detail": "강남구"}, {"large": "경기도", "detail": "남양주시"}, {"large": "경기도", "detail": "성남시"}, {"large": "경기도", "detail": "고양시"}, {"large": "서울특별시", "detail": "노원구"}, {"large": "경기도", "detail": "광명시"}, {"large": "경기도", "detail": "안양시"}, {"large": "서울특별시", "detail": "영등포구"}, {"large": "서울특별시", "detail": "양천구"}, {"large": "서울특별시", "detail": "서대문구"}, {"large": "경기도", "detail": "화성시"}, {"large": "서울특별시", "detail": "성북구"}, {"large": "경기도", "detail": "시흥시"}, {"large": "서울특별시", "detail": "서초구"}, {"large": "서울특별시", "detail": "마포구"}, {"large": "대구광역시", "detail": "동구"}, {"large": "인천광역시", "detail": "계양구"}, {"large": "서울특별시", "detail": "관악구"}, {"large": "서울특별시", "detail": "성동구"}, {"large": "경기도", "detail": "용인시"}, {"large": "서울특별시", "detail": "동대문구"}, {"large": "서울특별시", "detail": "강동구"}, {"large": "경기도", "detail": "의왕시"}, {"large": "광주광역시", "detail": "남구"}], "rate_min": 7.5, "rate_max": 12.9, "ltv_eff_max": 66.44, "ltv_rec_max": 81.27, "max_single": 500000, "total_amt": 9100000, "total_count": 40, "latest_date": "2026-06-02"}], "region_map": {"강원특별자치도": ["원주시"], "경기도": ["고양시", "과천시", "광명시", "광주시", "구리시", "군포시", "김포시", "남양주시", "부천시", "성남시", "수원시", "시흥시", "안산시", "안양시", "양주시", "오산시", "용인시", "의왕시", "의정부시", "파주시", "평택시", "하남시", "화성시"], "경상북도": ["포항시"], "광주광역시": ["광산구", "남구", "서구"], "대구광역시": ["달서구", "달성군", "동구", "북구", "서구", "수성구"], "대전광역시": ["동구", "서구", "유성구"], "부산광역시": ["강서구", "금정구", "기장군", "남구", "동래구", "부산진구", "북구", "사하구", "연제구"], "서울특별시": ["강남구", "강동구", "강서구", "관악구", "구로구", "금천구", "노원구", "도봉구", "동대문구", "동작구", "마포구", "서대문구", "서초구", "성동구", "성북구", "송파구", "양천구", "영등포구", "종로구", "중랑구"], "세종특별자치시": ["세종특별자치시"], "울산광역시": ["울주군"], "인천광역시": ["계양구", "남동구", "미추홀구", "부평구", "서구", "연수구"], "전라북도": ["군산시"], "충청남도": ["아산시", "천안시"]}};
+const INVESTORS = RAW.investors;
+const REGION_MAP = RAW.region_map;
+
+// ── 파티클 생성 ──
+function createParticles(){
+  const wrap = document.getElementById('particles');
+  const colors = ['#c084fc','#a78bfa','#f0abfc','#818cf8','#e879f9'];
+  for(let i=0;i<25;i++){
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = Math.random()*8+4;
+    p.style.cssText = `
+      width:${size}px;height:${size}px;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      left:${Math.random()*100}%;
+      animation-duration:${Math.random()*15+10}s;
+      animation-delay:${Math.random()*10}s;
+    `;
+    wrap.appendChild(p);
+  }
+}
+createParticles();
+
+// ── 지역 드롭다운 ──
+const selLarge = document.getElementById('sel-large');
+const selDetail = document.getElementById('sel-detail');
+Object.keys(REGION_MAP).sort().forEach(r=>{
+  const o=document.createElement('option'); o.value=r; o.textContent=r; selLarge.appendChild(o);
+});
+function updateDetail(){
+  const v=selLarge.value;
+  selDetail.innerHTML='<option value="">-- 시/군/구 (선택) --</option>';
+  if(!v)return;
+  (REGION_MAP[v]||[]).forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=d;selDetail.appendChild(o);});
+}
+
+// ── 모집금액 힌트 ──
+document.getElementById('inp-amt').addEventListener('input',function(){
+  const v=parseFloat(this.value), hint=document.getElementById('amt-hint'), legend=document.getElementById('grade-legend');
+  if(isNaN(v)||v<=0){hint.textContent='—';legend.style.display='none';return;}
+  const won=v*1e6;
+  hint.textContent='총 '+fmtFull(won)+' → 40% = '+fmtFull(won*.4);
+  document.getElementById('leg-g1').textContent='1순위: '+fmtFull(won*.4)+' 이상 (40%)';
+  document.getElementById('leg-g2').textContent='2순위: '+fmtFull(won*.2)+' 이상 (20%)';
+  document.getElementById('leg-g3').textContent='3순위: '+fmtFull(won*.1)+' 이상 (10%)';
+  document.getElementById('leg-g0').textContent='참고: 그 이하';
+  legend.style.display='flex';
+});
+
+// ── 유틸 ──
+function fmt(n){if(n>=1e8)return(n/1e8).toFixed(1)+'억';if(n>=1e4)return Math.round(n/1e4)+'만';return n.toLocaleString();}
+function fmtFull(n){if(n>=1e8){const b=Math.floor(n/1e8),m=Math.round((n%1e8)/1e4);return m>0?b+'억 '+m+'만':b+'억';}if(n>=1e4)return Math.round(n/1e4)+'만';return n.toLocaleString()+'원';}
+function initial(name){return name.replace(/주식회사|유한회사|유한책임회사|\(주\)|㈜/g,'').trim().charAt(0)||'?';}
+function getGrade(maxSingle,amt){
+  if(!amt||isNaN(amt)||amt<=0)return null;
+  if(maxSingle>=amt*.4)return 1;
+  if(maxSingle>=amt*.2)return 2;
+  if(maxSingle>=amt*.1)return 3;
+  return 4;
+}
+const GRADE_INFO={1:{cls:'g1',label:'🟢 1순위 (40%+)'},2:{cls:'g2',label:'🟡 2순위 (20%+)'},3:{cls:'g3',label:'🟠 3순위 (10%+)'},4:{cls:'g4',label:'⚪ 참고'}};
+
+// ── 탭 전환 ──
+function switchTab(tab){
+  document.getElementById('panel-single').style.display = tab==='single'?'':'none';
+  document.getElementById('panel-batch').style.display  = tab==='batch' ?'':'none';
+  document.getElementById('tab-single').classList.toggle('active',tab==='single');
+  document.getElementById('tab-batch').classList.toggle('active', tab==='batch');
+}
+
+// ── 단일 검색 ──
+let lastResults=[], lastInput={};
+
+function runSearch(){
+  const type=document.getElementById('sel-type').value;
+  const large=selLarge.value, detail=selDetail.value;
+  const rate=parseFloat(document.getElementById('inp-rate').value);
+  const ltve=parseFloat(document.getElementById('inp-ltve').value);
+  const ltvr=parseFloat(document.getElementById('inp-ltvr').value);
+  const amtMil=parseFloat(document.getElementById('inp-amt').value);
+  const amt=isNaN(amtMil)?NaN:amtMil*1e6;
+  const hasAmt=!isNaN(amt)&&amt>0;
+  if(!type){alert('상품 유형을 선택해주세요! 🎯');return;}
+  if(!large){alert('지역을 선택해주세요! 📍');return;}
+  lastInput={type,large,detail,rate,ltve,ltvr,amt};
+  lastResults=INVESTORS.filter(inv=>{
+    if(!inv.types.includes(type))return false;
+    const rm=inv.regions.some(r=>{if(r.large!==large)return false;if(detail&&r.detail!==detail)return false;return true;});
+    if(!rm)return false;
+    if(!isNaN(rate)&&rate<inv.rate_min)return false;
+    if(!isNaN(ltve)&&ltve>inv.ltv_eff_max)return false;
+    if(!isNaN(ltvr)&&ltvr>inv.ltv_rec_max)return false;
+    return true;
+  });
+  // 등급 정렬 옵션
+  const sortSel=document.getElementById('sort-sel');
+  const hasGradeOpt=Array.from(sortSel.options).some(o=>o.value==='grade');
+  if(hasAmt&&!hasGradeOpt){const opt=document.createElement('option');opt.value='grade';opt.textContent='🎯 투자 가능 등급';sortSel.insertBefore(opt,sortSel.firstChild);sortSel.value='grade';}
+  else if(!hasAmt&&hasGradeOpt){Array.from(sortSel.options).forEach(o=>{if(o.value==='grade')sortSel.removeChild(o);});if(sortSel.value==='grade')sortSel.value='amount';}
+  renderResults();
+}
+
+function sortArr(arr,key,amt){
+  return [...arr].sort((a,b)=>{
+    if(key==='grade'){const ga=getGrade(a.max_single,amt)??5,gb=getGrade(b.max_single,amt)??5;if(ga!==gb)return ga-gb;return b.total_amt-a.total_amt;}
+    if(key==='date')return b.latest_date.localeCompare(a.latest_date);
+    if(key==='amount')return b.total_amt-a.total_amt;
+    if(key==='count')return b.total_count-a.total_count;
+    return 0;
+  });
+}
+
+function renderResults(){
+  const sortKey=document.getElementById('sort-sel').value;
+  const {type,large,detail}=lastInput;
+  const amtMilNow=parseFloat(document.getElementById('inp-amt').value);
+  const amt=isNaN(amtMilNow)?NaN:amtMilNow*1e6;
+  const hasAmt=!isNaN(amt)&&amt>0;
+  const sorted=sortArr(lastResults,sortKey,amt);
+  const isReg=type==='신규'||type==='지분';
+  const ranks=['🥇','🥈','🥉'];
+  let html='';
+
+  // 카운터 애니메이션
+  html+=`<div class="counter-wrap">
+    <div class="counter-box"><span class="counter-num" id="cnt-match">0</span><span class="counter-lbl">🧑‍💼 매칭 투자자</span></div>
+    <div class="counter-box"><span class="counter-num" id="cnt-total">0억</span><span class="counter-lbl">💰 총 투자금액</span></div>
+    <div class="counter-box"><span class="counter-num" id="cnt-deals">0건</span><span class="counter-lbl">📋 총 투자건수</span></div>
+  </div>`;
+
+  html+=`<div class="results-header">
+    <div class="results-title">✅ 매칭 결과</div>
+    <div class="count-pill">🧑‍💼 ${sorted.length}명</div>
+  </div>`;
+
+  if(isReg) html+=`<div class="warn-banner">⚠️ <span><b>${type} 상품</b>은 규제 적용 구간이에요. 담보비율 필터는 참고용으로만 활용해주세요!</span></div>`;
+
+  if(sorted.length===0){
+    html+=`<div class="state-box"><div class="icon">😢</div><p>조건에 맞는 투자자가 없어요.<br>조건을 조금 완화해보세요! 🙏</p></div>`;
+    document.getElementById('main-area').innerHTML=html;
+    return;
+  }
+
+  html+='<div class="cards">';
+  sorted.forEach((inv,i)=>{
+    const grade=hasAmt?getGrade(inv.max_single,amt):null;
+    const gradeInfo=grade!==null?GRADE_INFO[grade]:null;
+    const matchSet=new Set(inv.regions.filter(r=>{if(r.large!==large)return false;if(detail&&r.detail!==detail)return false;return true;}).map(r=>r.large+r.detail));
+    const sortedRegions=[...inv.regions].sort((a,b)=>(matchSet.has(a.large+a.detail)?0:1)-(matchSet.has(b.large+b.detail)?0:1));
+    const regionHtml=sortedRegions.slice(0,10).map(r=>{
+      const isM=matchSet.has(r.large+r.detail);
+      const label=r.large===r.detail?r.large:r.large.replace('특별시','').replace('광역시','').replace('특별자치시','').replace('특별자치도','').replace('도','').trim()+' '+r.detail;
+      return `<span class="region-tag ${isM?'match':''}">${isM?'📍 ':''}${label}</span>`;
+    }).join('')+(sortedRegions.length>10?`<span class="region-tag">+${sortedRegions.length-10}개</span>`:'');
+    const typeHtml=inv.types.map(t=>`<span class="type-tag ${t}">${t==='신규'?'🏠':t==='연장'?'🔄':t==='후취'?'✨':'🤝'} ${t}</span>`).join('');
+    const dimCard=grade===4;
+    let singleValClass='';
+    if(grade===1)singleValClass='green';else if(grade===2)singleValClass='yellow';else if(grade===3)singleValClass='orange';else if(grade===4)singleValClass='gray';
+    html+=`<div class="card ${i===0&&!dimCard?'top':''} ${dimCard?'grade-dim':''}" style="animation-delay:${i*0.08}s">
+      ${i<3?`<div class="rank-badge ${i===1?'silver':i===2?'bronze':''}">${ranks[i]}${i===0?' TOP MATCH':''}</div>`:''}
+      ${gradeInfo?`<div class="grade-badge ${gradeInfo.cls}">${gradeInfo.label}</div>`:''}
+      <div style="height:${i<3||gradeInfo?'8px':'4px'}"></div>
+      <div class="card-top">
+        <div class="avatar">${initial(inv.name)}</div>
+        <div style="flex:1"><div class="inv-name">${inv.name}</div><div class="type-tags">${typeHtml}</div></div>
+        <div class="latest-date">🕐 최근 투자<br>${inv.latest_date}</div>
+      </div>
+      <div class="card-stats">
+        <div class="stat"><span class="stat-val">💰 ${fmt(inv.total_amt)}</span><span class="stat-label">총 투자금액</span></div>
+        <div class="stat"><span class="stat-val">📋 ${inv.total_count}건</span><span class="stat-label">총 건수</span></div>
+        <div class="stat"><span class="stat-val ${singleValClass}">🎯 ${fmtFull(inv.max_single)}</span><span class="stat-label">최대 단일${hasAmt&&grade===1?' ✅':''}</span></div>
+      </div>
+      <div class="card-meta">
+        <div class="meta-item"><div class="meta-label">💹 수익률 범위</div><div class="meta-val">${inv.rate_min}% – ${inv.rate_max}%</div></div>
+        <div class="meta-item"><div class="meta-label">📉 유효담보비율 최대</div><div class="meta-val">${inv.ltv_eff_max}%</div></div>
+        <div class="meta-item"><div class="meta-label">📊 담보인정비율 최대</div><div class="meta-val">${inv.ltv_rec_max}%</div></div>
+        <div class="meta-item"><div class="meta-label">🗺️ 투자 지역 수</div><div class="meta-val">${inv.regions.length}개 지역</div></div>
+      </div>
+      <div class="region-label">🗺️ 투자 지역 이력</div>
+      <div class="regions">${regionHtml}</div>
+    </div>`;
+  });
+  html+='</div>';
+  document.getElementById('main-area').innerHTML=html;
+
+  // 카운터 애니메이션 실행
+  const totalAmt=sorted.reduce((s,inv)=>s+inv.total_amt,0);
+  const totalDeals=sorted.reduce((s,inv)=>s+inv.total_count,0);
+  animateCounter('cnt-match',sorted.length,'명',600);
+  animateCounter('cnt-total',Math.round(totalAmt/1e8),'억',800);
+  animateCounter('cnt-deals',totalDeals,'건',700);
+}
+
+function animateCounter(id,target,suffix,dur){
+  const el=document.getElementById(id); if(!el)return;
+  let start=null;
+  const step=ts=>{
+    if(!start)start=ts;
+    const prog=Math.min((ts-start)/dur,1);
+    el.textContent=Math.round(prog*target)+suffix;
+    if(prog<1)requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+function resetAll(){
+  document.getElementById('sel-type').value='';
+  selLarge.value=''; selDetail.innerHTML='<option value="">-- 시/군/구 (선택) --</option>';
+  ['inp-rate','inp-ltve','inp-ltvr','inp-amt'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('amt-hint').textContent='—';
+  document.getElementById('grade-legend').style.display='none';
+  const sortSel=document.getElementById('sort-sel');
+  Array.from(sortSel.options).forEach(o=>{if(o.value==='grade')sortSel.removeChild(o);});
+  sortSel.value='amount';
+  lastResults=[]; lastInput={};
+  document.getElementById('main-area').innerHTML=`<div class="state-box"><div class="icon">🎮</div><p>상품 조건을 입력하고<br>투자자를 찾아보세요! 🚀✨</p></div>`;
+}
+
+// ── 배치 조회 ──
+const TYPE_MAP={'신규':'신규','일반':'신규','후취':'후취','연장':'연장','지분':'지분'};
+
+function parseBatchLine(line){
+  const cleaned=line.replace(/^\s*\d+[\.)]\s*/,'').trim();
+  if(!cleaned)return null;
+  const tabs=(cleaned.match(/\t/g)||[]).length;
+  if(tabs>=3)return parseExcelLine(cleaned);
+  const parts=cleaned.split('/').map(p=>p.trim());
+  if(parts.length<4)return{error:'컬럼 부족 (최소 4개 필요)'};
+  const[typeRaw,large,detail,rateRaw,ltveRaw,ltvrRaw,amtRaw]=parts;
+  const type=TYPE_MAP[typeRaw];
+  if(!type)return{error:`유형 인식 불가: "${typeRaw}"`};
+  if(!large)return{error:'광역시도 없음'};
+  return{type,large,detail:detail||'',rate:parseFloat(rateRaw)||NaN,ltve:parseFloat(ltveRaw)||NaN,ltvr:parseFloat(ltvrRaw)||NaN,amt:amtRaw?parseFloat(amtRaw.replace(/,/g,''))*1e6:NaN};
+}
+
+function parseExcelLine(line){
+  const cols=line.split('\t').map(c=>c.trim());
+  if(cols.length<9)return{error:'엑셀 컬럼 부족'};
+  const type=TYPE_MAP[(cols[4]||'').replace(/\s/g,'')];
+  if(!type)return{error:`종류 인식 불가: "${cols[4]}"`};
+  const{large,detail}=parseAddr(cols[5]||'');
+  if(!large)return{error:`주소 파싱 실패: "${cols[5]}"`};
+  const amt=parseFloat((cols[7]||'').replace(/[,\s]/g,''))||NaN;
+  const rate=parseFloat((cols[8]||'').replace('%',''))||NaN;
+  const ltvRaw=cols[12]||'';
+  const ltve=ltvRaw?parseFloat(ltvRaw.replace('%',''))||NaN:NaN;
+  return{type,large,detail,rate,ltve,ltvr:NaN,amt,ltvMissing:!ltvRaw};
+}
+
+function parseAddr(addr){
+  const parts=addr.split(' ');
+  if(!parts.length)return{large:'',detail:''};
+  const large=parts[0]; let detail='';
+  for(let i=1;i<parts.length;i++){if(parts[i].endsWith('구')||parts[i].endsWith('시')||parts[i].endsWith('군')){detail=parts[i];break;}}
+  return{large,detail};
+}
+
+function filterInvestors(cond){
+  const{type,large,detail,rate,ltve,ltvr}=cond;
+  return INVESTORS.filter(inv=>{
+    if(!inv.types.includes(type))return false;
+    const rm=inv.regions.some(r=>{if(r.large!==large)return false;if(detail&&r.detail!==detail)return false;return true;});
+    if(!rm)return false;
+    if(!isNaN(rate)&&rate<inv.rate_min)return false;
+    if(!isNaN(ltve)&&ltve>inv.ltv_eff_max)return false;
+    if(!isNaN(ltvr)&&ltvr>inv.ltv_rec_max)return false;
+    return true;
+  });
+}
+
+function runBatch(){
+  const raw=document.getElementById('batch-input').value;
+  const lines=raw.split('\n').filter(l=>l.trim());
+  if(!lines.length){alert('내용을 입력해주세요! 📝');return;}
+  let lineNum=0, html='';
+  const allCards=[];
+
+  lines.forEach(line=>{
+    if(!line.trim())return;
+    lineNum++;
+    const cond=parseBatchLine(line);
+    if(!cond)return;
+    if(cond.error){
+      allCards.push(`<div class="batch-card"><div class="batch-num">📌 ${lineNum}번</div><div class="batch-error-tag">⚠️ ${cond.error}</div></div>`);
+      return;
+    }
+    const results=filterInvestors(cond);
+    const sorted=[...results].sort((a,b)=>{
+      const ga=getGrade(a.max_single,cond.amt)??5, gb=getGrade(b.max_single,cond.amt)??5;
+      if(ga!==gb)return ga-gb; return b.total_amt-a.total_amt;
+    });
+    const ltvWarn=cond.ltvMissing?'<span style="color:#ef4444;font-size:10px;font-weight:800;margin-left:6px">⚠️ LTV없음·담보비율필터미적용</span>':'';
+    const condLabel=[
+      cond.type,
+      cond.large.replace('특별시','').replace('광역시','').replace('특별자치시','').replace('특별자치도','').replace('도','').trim(),
+      cond.detail||'전체',
+      !isNaN(cond.rate)?cond.rate+'%':'',
+      !isNaN(cond.ltve)?'유효'+cond.ltve+'%':'',
+      !isNaN(cond.amt)?fmt(cond.amt):'',
+    ].filter(Boolean).join(' · ');
+    const invTagsHtml=sorted.length===0
+      ?'<span class="batch-none">😢 조건 맞는 투자자 없음</span>'
+      :sorted.map(inv=>{
+        const g=getGrade(inv.max_single,cond.amt);
+        const cls=g===1?'g1':g===2?'g2':g===3?'g3':g===4?'g4':'';
+        const emoji=g===1?'🟢':g===2?'🟡':g===3?'🟠':g===4?'⚪':'';
+        const shortName=inv.name.replace('주식회사','').replace('(주)','').replace('㈜','').trim();
+        return `<span class="batch-inv-tag ${cls}">${emoji} ${shortName}</span>`;
+      }).join('');
+    allCards.push(`<div class="batch-card"><div class="batch-num">📌 ${lineNum}번 조회</div><div class="batch-cond">${condLabel}${ltvWarn}</div><div class="batch-inv-list">${invTagsHtml}</div></div>`);
+  });
+
+  html=`<div class="batch-results-header">
+    <div class="results-title">✅ 배치 조회 결과</div>
+    <div class="count-pill">📋 ${lineNum}건</div>
+  </div><div class="batch-grid">${allCards.join('')}</div>`;
+  document.getElementById('batch-result-area').innerHTML=html;
+
+  // 카드 순차 등장 애니메이션
+  setTimeout(()=>{
+    document.querySelectorAll('.batch-card').forEach((c,i)=>setTimeout(()=>c.classList.add('show'),i*80));
+  },50);
+}
+</script>
+</body>
+</html>
