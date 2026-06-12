@@ -34,14 +34,14 @@ header .sub{font-size:12px;color:rgba(255,255,255,.8)}
 .header-badge{margin-left:auto;background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);border-radius:20px;font-size:11px;color:#fff;font-weight:700;padding:4px 12px}
 
 /* ── 탭 ── */
-.tab-bar{display:flex;background:var(--surface);border-bottom:2px solid var(--border);position:sticky;top:68px;z-index:99}
+.tab-bar{display:flex;background:var(--surface);border-bottom:2px solid var(--border)}
 .tab-btn{flex:1;padding:12px;font-size:13px;font-weight:800;font-family:'Nunito',sans-serif;border:none;cursor:pointer;background:transparent;color:var(--text3);transition:all .2s;position:relative}
 .tab-btn.active{color:var(--purple-dark);background:var(--surface2)}
 .tab-btn.active::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:2px;background:var(--grad)}
 
 /* ── 단일 조회 레이아웃 ── */
-.layout{display:grid;grid-template-columns:320px 1fr;min-height:calc(100vh - 115px)}
-aside{background:var(--surface);border-right:2px dashed var(--border);padding:20px;display:flex;flex-direction:column;gap:13px;position:sticky;top:115px;height:calc(100vh - 115px);overflow-y:auto}
+.layout{display:grid;grid-template-columns:320px 1fr;min-height:calc(100vh - 115px);position:relative}
+aside{background:var(--surface);border-right:2px dashed var(--border);padding:20px;display:flex;flex-direction:column;gap:13px;overflow-y:auto;height:calc(100vh - 115px)}
 .side-title{font-size:10px;font-weight:900;color:var(--text3);text-transform:uppercase;letter-spacing:.1em}
 .form-group{display:flex;flex-direction:column;gap:5px}
 .form-label{font-size:12px;font-weight:700;color:var(--text2)}
@@ -128,7 +128,7 @@ main{padding:20px 24px;overflow-y:auto}
 .region-tag.match{background:#ede9fe;border-color:var(--text4);color:var(--purple-dark)}
 
 /* ── 배치 조회 ── */
-#panel-batch{padding:20px 24px;display:none}
+#panel-batch{padding:20px 24px;display:none;min-height:400px}
 .batch-top{display:flex;gap:12px;margin-bottom:16px}
 .batch-textarea{background:var(--surface2);border:2px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:12px;font-weight:600;font-family:'Nunito',monospace;padding:12px;width:100%;resize:vertical;min-height:100px;outline:none;line-height:1.8;flex:1}
 .batch-textarea:focus{border-color:var(--purple)}
