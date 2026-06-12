@@ -165,6 +165,58 @@ main { padding: 20px 24px; }
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #e9d5ff; border-radius: 3px; }
+
+/* 탭 */
+.tab-bar { display: flex; gap: 0; border-bottom: 2px solid #e9d5ff; margin-bottom: 16px; }
+.tab-btn {
+  flex: 1; padding: 10px; font-size: 12px; font-weight: 800;
+  font-family: 'Nunito', sans-serif; border: none; cursor: pointer;
+  background: #f5f0ff; color: #a78bfa;
+  transition: background 0.15s, color 0.15s;
+}
+.tab-btn:first-child { border-radius: 12px 0 0 0; }
+.tab-btn:last-child { border-radius: 0 12px 0 0; }
+.tab-btn.active { background: #fff; color: #7c3aed; border-bottom: 2px solid #a855f7; margin-bottom: -2px; }
+
+/* 배치 입력 */
+.batch-wrap { display: flex; flex-direction: column; gap: 10px; }
+.batch-textarea {
+  background: #fff; border: 2px solid #ddd6fe; border-radius: 10px;
+  color: #3b0764; font-size: 12px; font-weight: 600;
+  font-family: 'Nunito', monospace; padding: 10px 12px;
+  width: 100%; resize: vertical; min-height: 120px; outline: none;
+  line-height: 1.8;
+}
+.batch-textarea:focus { border-color: #a78bfa; }
+.batch-hint {
+  background: #f5f3ff; border-radius: 8px; padding: 8px 12px;
+  font-size: 10px; color: #7c3aed; font-weight: 600; line-height: 1.8;
+}
+.batch-result-item {
+  background: #fff; border: 2px solid #ede9fe; border-radius: 12px;
+  padding: 12px 16px; margin-bottom: 8px;
+}
+.batch-result-num {
+  font-size: 11px; font-weight: 800; color: #a78bfa;
+  margin-bottom: 6px;
+}
+.batch-result-cond {
+  font-size: 11px; font-weight: 600; color: #5b21b6;
+  margin-bottom: 8px; background: #f5f3ff; border-radius: 6px;
+  padding: 4px 8px; display: inline-block;
+}
+.batch-result-names { display: flex; flex-wrap: wrap; gap: 5px; }
+.batch-inv-tag {
+  background: #ede9fe; border: 1.5px solid #c4b5fd;
+  border-radius: 8px; padding: 3px 10px;
+  font-size: 12px; font-weight: 700; color: #7c3aed;
+}
+.batch-inv-tag.g1 { background: #dcfce7; border-color: #86efac; color: #15803d; }
+.batch-inv-tag.g2 { background: #fef9c3; border-color: #fde68a; color: #a16207; }
+.batch-inv-tag.g3 { background: #ffedd5; border-color: #fdba74; color: #c2410c; }
+.batch-inv-tag.g4 { background: #f1f5f9; border-color: #e2e8f0; color: #94a3b8; }
+.batch-error { color: #ef4444; font-size: 11px; font-weight: 700; }
+.batch-none { color: #a78bfa; font-size: 11px; font-weight: 700; }
 </style>
 </head>
 <body>
@@ -178,6 +230,12 @@ main { padding: 20px 24px; }
 
 <div class="layout">
   <aside>
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tab-single" onclick="switchTab('single')">🔍 단일 조회</button>
+      <button class="tab-btn" id="tab-batch" onclick="switchTab('batch')">📋 배치 조회</button>
+    </div>
+
+    <div id="panel-single">
     <div class="side-section-title">🗂️ 상품 조건 입력</div>
 
     <div class="form-group">
@@ -244,6 +302,22 @@ main { padding: 20px 24px; }
 
     <button class="btn-search" onclick="runSearch()">🔍 투자자 찾기!</button>
     <button class="btn-reset" onclick="resetAll()">↺ 초기화</button>
+    </div><!-- /panel-single -->
+
+    <div id="panel-batch" style="display:none" class="batch-wrap">
+      <div class="batch-hint">
+        📌 형식: <b>유형/광역시도/시군구/수익률/유효담보/담보인정/모집금액</b><br>
+        • 유형: 신규(일반) · 후취 · 연장 · 지분<br>
+        • 시군구 없으면 공백으로<br>
+        • 수익률·담보비율: % 숫자만 · 모집금액: 백만원<br><br>
+        예) 신규/서울특별시/강남구/9.5/45/60/100<br>
+        예) 후취/경기도/ /10/55/70/200
+      </div>
+      <textarea class="batch-textarea" id="batch-input" placeholder="1. 신규/서울특별시/강남구/9.5/45/60/100&#10;2. 후취/경기도/ /10/55/70/200" spellcheck="false"></textarea>
+      <button class="btn-search" onclick="runBatch()">📋 배치 조회!</button>
+      <button class="btn-reset" onclick="document.getElementById('batch-input').value=''; document.getElementById('batch-output').innerHTML='';">↺ 초기화</button>
+      <div id="batch-output"></div>
+    </div>
   </aside>
 
   <main id="main-area">
@@ -499,6 +573,116 @@ function resetAll() {
   sortSel2.value = 'amount';
   lastResults = []; lastInput = {};
   document.getElementById('main-area').innerHTML = `<div class="state-box"><div class="icon">🎮</div><p>상품 조건을 입력하고<br>투자자를 찾아보세요! 🚀</p></div>`;
+}
+
+// ── 탭 전환 ────────────────────────────────────────────
+function switchTab(tab) {
+  document.getElementById('panel-single').style.display = tab === 'single' ? '' : 'none';
+  document.getElementById('panel-batch').style.display  = tab === 'batch'  ? '' : 'none';
+  document.getElementById('tab-single').classList.toggle('active', tab === 'single');
+  document.getElementById('tab-batch').classList.toggle('active',  tab === 'batch');
+  if (tab === 'batch') {
+    document.getElementById('main-area').innerHTML = `<div class="state-box"><div class="icon">📋</div><p>배치 조회 결과가<br>여기에 표시됩니다!</p></div>`;
+  }
+}
+
+// ── 배치 파싱 & 조회 ───────────────────────────────────
+const TYPE_MAP = { '신규':'신규','일반':'신규','후취':'후취','연장':'연장','지분':'지분' };
+
+function parseBatchLine(line) {
+  // 번호 제거: "1. " 또는 "1) "
+  const cleaned = line.replace(/^\s*\d+[\.\)]\s*/, '').trim();
+  if (!cleaned) return null;
+  const parts = cleaned.split('/').map(p => p.trim());
+  if (parts.length < 4) return { error: '컬럼 부족 (최소 4개 필요)' };
+  const [typeRaw, large, detail, rateRaw, ltveRaw, ltvrRaw, amtRaw] = parts;
+  const type = TYPE_MAP[typeRaw];
+  if (!type) return { error: `유형 인식 불가: "${typeRaw}"` };
+  if (!large) return { error: '광역시도 없음' };
+  const rate  = parseFloat(rateRaw)  || NaN;
+  const ltve  = parseFloat(ltveRaw)  || NaN;
+  const ltvr  = parseFloat(ltvrRaw)  || NaN;
+  const amt   = amtRaw ? parseFloat(amtRaw.replace(/,/g,'')) * 1e6 : NaN;
+  return { type, large, detail: detail||'', rate, ltve, ltvr, amt };
+}
+
+function filterInvestors(cond) {
+  const { type, large, detail, rate, ltve, ltvr } = cond;
+  return INVESTORS.filter(inv => {
+    if (!inv.types.includes(type)) return false;
+    const rm = inv.regions.some(r => {
+      if (r.large !== large) return false;
+      if (detail && r.detail !== detail) return false;
+      return true;
+    });
+    if (!rm) return false;
+    if (!isNaN(rate) && rate < inv.rate_min) return false;
+    if (!isNaN(ltve) && ltve > inv.ltv_eff_max) return false;
+    if (!isNaN(ltvr) && ltvr > inv.ltv_rec_max) return false;
+    return true;
+  });
+}
+
+function runBatch() {
+  const raw = document.getElementById('batch-input').value;
+  const lines = raw.split('\n').filter(l => l.trim());
+  if (!lines.length) { alert('내용을 입력해주세요!'); return; }
+
+  let html = '<div class="cards">';
+  let lineNum = 0;
+
+  lines.forEach(line => {
+    if (!line.trim()) return;
+    lineNum++;
+    const cond = parseBatchLine(line);
+
+    if (!cond) return;
+    if (cond.error) {
+      html += `<div class="batch-result-item">
+        <div class="batch-result-num">${lineNum}번</div>
+        <div class="batch-error">⚠️ 파싱 오류: ${cond.error}</div>
+      </div>`;
+      return;
+    }
+
+    const results = filterInvestors(cond);
+    // 등급 기준 정렬
+    const sorted = [...results].sort((a,b) => {
+      const ga = getGrade(a.max_single, cond.amt) ?? 5;
+      const gb = getGrade(b.max_single, cond.amt) ?? 5;
+      if (ga !== gb) return ga - gb;
+      return b.total_amt - a.total_amt;
+    });
+
+    const condLabel = [
+      cond.type,
+      cond.large.replace('특별시','').replace('광역시','').replace('특별자치시','').replace('특별자치도','').replace('도','').trim(),
+      cond.detail||'전체',
+      !isNaN(cond.rate) ? cond.rate+'%' : '',
+      !isNaN(cond.ltve) ? '유효'+cond.ltve+'%' : '',
+      !isNaN(cond.amt)  ? fmt(cond.amt) : '',
+    ].filter(Boolean).join(' · ');
+
+    const invTagsHtml = sorted.length === 0
+      ? '<span class="batch-none">😢 조건 맞는 투자자 없음</span>'
+      : sorted.map(inv => {
+          const g = getGrade(inv.max_single, cond.amt);
+          const cls = g===1?'g1':g===2?'g2':g===3?'g3':g===4?'g4':'';
+          const gradeEmoji = g===1?'🟢':g===2?'🟡':g===3?'🟠':g===4?'⚪':'';
+          const shortName = inv.name.replace('주식회사','').replace('(주)','').replace('㈜','').trim();
+          return `<span class="batch-inv-tag ${cls}">${gradeEmoji} ${shortName}</span>`;
+        }).join('');
+
+    html += `<div class="batch-result-item">
+      <div class="batch-result-num">📌 ${lineNum}번 조회</div>
+      <div class="batch-result-cond">${condLabel}</div>
+      <div class="batch-result-names">${invTagsHtml}</div>
+    </div>`;
+  });
+
+  html += '</div>';
+  document.getElementById('main-area').innerHTML = html;
+  document.getElementById('batch-output').innerHTML = '';
 }
 </script>
 </body>
