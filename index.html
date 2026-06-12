@@ -306,14 +306,14 @@ main { padding: 20px 24px; }
 
     <div id="panel-batch" style="display:none" class="batch-wrap">
       <div class="batch-hint">
-        📌 형식: <b>유형/광역시도/시군구/수익률/유효담보/담보인정/모집금액</b><br>
-        • 유형: 신규(일반) · 후취 · 연장 · 지분<br>
-        • 시군구 없으면 공백으로<br>
-        • 수익률·담보비율: % 숫자만 · 모집금액: 백만원<br><br>
-        예) 신규/서울특별시/강남구/9.5/45/60/100<br>
-        예) 후취/경기도/ /10/55/70/200
+        📌 <b>슬래시(/) 형식</b> — 유형/광역시도/시군구/수익률/유효담보/담보인정/모집금액(백만)<br>
+        예) 신규/서울특별시/강남구/9.5/45/60/100<br><br>
+        📌 <b>엑셀 복붙 형식</b> — 순번·대출신청ID·이름·대출구분·<b>종류</b>·<b>물건지</b>·면적·<b>대출금액</b>·<b>금리</b>·기간·시세·시세구분·<b>LTV</b> (탭 구분)<br>
+        예) 엑셀에서 행 선택 후 그대로 붙여넣기<br>
+        • LTV 비어있으면 ⚠️ 경고 표시 후 담보비율 필터 미적용<br>
+        • LTV = 유효담보비율로 처리
       </div>
-      <textarea class="batch-textarea" id="batch-input" placeholder="1. 신규/서울특별시/강남구/9.5/45/60/100&#10;2. 후취/경기도/ /10/55/70/200" spellcheck="false"></textarea>
+      <textarea class="batch-textarea" id="batch-input" placeholder="엑셀 행을 그대로 붙여넣거나&#10;1. 신규/서울특별시/강남구/9.5/45/60/100 형식으로 입력" spellcheck="false"></textarea>
       <button class="btn-search" onclick="runBatch()">📋 배치 조회!</button>
       <button class="btn-reset" onclick="document.getElementById('batch-input').value=''; document.getElementById('batch-output').innerHTML='';">↺ 초기화</button>
       <div id="batch-output"></div>
@@ -591,8 +591,16 @@ const TYPE_MAP = { '신규':'신규','일반':'신규','후취':'후취','연장
 
 function parseBatchLine(line) {
   // 번호 제거: "1. " 또는 "1) "
-  const cleaned = line.replace(/^\s*\d+[\.\)]\s*/, '').trim();
+  const cleaned = line.replace(/^\s*\d+[\.\.)]\s*/, '').trim();
   if (!cleaned) return null;
+
+  // 탭 구분 엑셀 형식 감지 (탭이 3개 이상이면 엑셀 복붙으로 판단)
+  const tabs = (cleaned.match(/\t/g) || []).length;
+  if (tabs >= 3) {
+    return parseExcelLine(cleaned);
+  }
+
+  // 슬래시 형식
   const parts = cleaned.split('/').map(p => p.trim());
   if (parts.length < 4) return { error: '컬럼 부족 (최소 4개 필요)' };
   const [typeRaw, large, detail, rateRaw, ltveRaw, ltvrRaw, amtRaw] = parts;
@@ -604,6 +612,53 @@ function parseBatchLine(line) {
   const ltvr  = parseFloat(ltvrRaw)  || NaN;
   const amt   = amtRaw ? parseFloat(amtRaw.replace(/,/g,'')) * 1e6 : NaN;
   return { type, large, detail: detail||'', rate, ltve, ltvr, amt };
+}
+
+function parseExcelLine(line) {
+  // 컬럼: 순번(0) / 대출신청ID(1) / 이름(2) / 대출구분(3) / 종류(4) /
+  //       물건지(5) / 면적(6) / 대출금액(7) / 금리(8) / 투자기간(9) /
+  //       시세(10) / 시세구분(11) / LTV(12)
+  const cols = line.split('\t').map(c => c.trim());
+  if (cols.length < 9) return { error: '엑셀 컬럼 부족 (최소 9개 필요)' };
+
+  // 종류 (4번 컬럼)
+  const typeRaw = cols[4] || '';
+  const type = TYPE_MAP[typeRaw.replace(/\s/g,'')];
+  if (!type) return { error: `종류 인식 불가: "${typeRaw}"` };
+
+  // 물건지에서 지역 파싱 (5번 컬럼)
+  const addr = cols[5] || '';
+  const { large, detail } = parseAddr(addr);
+  if (!large) return { error: `주소 파싱 실패: "${addr}"` };
+
+  // 대출금액 (7번, 원 단위)
+  const amtRaw = cols[7] || '';
+  const amt = parseFloat(amtRaw.replace(/[,\s]/g,'')) || NaN;
+
+  // 금리 (8번, % 포함 가능)
+  const rateRaw = cols[8] || '';
+  const rate = parseFloat(rateRaw.replace('%','')) || NaN;
+
+  // LTV (12번, % 포함 가능)
+  const ltvRaw = cols[12] || '';
+  const ltve = ltvRaw ? parseFloat(ltvRaw.replace('%','')) || NaN : NaN;
+  const ltvMissing = !ltvRaw || ltvRaw === '';
+
+  return { type, large, detail, rate, ltve, ltvr: NaN, amt, ltvMissing };
+}
+
+function parseAddr(addr) {
+  const parts = addr.split(' ');
+  if (!parts.length) return { large: '', detail: '' };
+  const large = parts[0];
+  let detail = '';
+  for (let i = 1; i < parts.length; i++) {
+    const p = parts[i];
+    if (p.endsWith('구') || p.endsWith('시') || p.endsWith('군')) {
+      detail = p; break;
+    }
+  }
+  return { large, detail };
 }
 
 function filterInvestors(cond) {
@@ -654,12 +709,13 @@ function runBatch() {
       return b.total_amt - a.total_amt;
     });
 
+    const ltvWarn = cond.ltvMissing ? '<span style="color:#ef4444;font-size:10px;font-weight:800;margin-left:6px;">⚠️ LTV 없음 · 담보비율 필터 미적용</span>' : '';
     const condLabel = [
       cond.type,
       cond.large.replace('특별시','').replace('광역시','').replace('특별자치시','').replace('특별자치도','').replace('도','').trim(),
       cond.detail||'전체',
       !isNaN(cond.rate) ? cond.rate+'%' : '',
-      !isNaN(cond.ltve) ? '유효'+cond.ltve+'%' : '',
+      !isNaN(cond.ltve) ? '유효담보'+cond.ltve+'%' : '',
       !isNaN(cond.amt)  ? fmt(cond.amt) : '',
     ].filter(Boolean).join(' · ');
 
@@ -675,7 +731,7 @@ function runBatch() {
 
     html += `<div class="batch-result-item">
       <div class="batch-result-num">📌 ${lineNum}번 조회</div>
-      <div class="batch-result-cond">${condLabel}</div>
+      <div class="batch-result-cond">${condLabel}${ltvWarn}</div>
       <div class="batch-result-names">${invTagsHtml}</div>
     </div>`;
   });
